@@ -2,16 +2,41 @@
 {% block head_title %}My profile{% endblock %}
 {% block container_class %}narrow{% endblock %}
 {% block main %}
-<section class="card profile-head">
-  <div class="profile-photo">
+<form class="card profile-head {% if form.errors %}editing{% endif %}" id="profile-card" method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <label class="profile-photo" for="id_photo" title="Change photo">
     {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="" id="photo-preview">{% else %}<span id="photo-preview" class="photo-initial">{{ user.display_name|first|upper }}</span>{% endif %}
-  </div>
+    <span class="photo-overlay"><i class="ph-fill ph-camera" aria-hidden="true"></i><span class="sr-only">Change photo</span></span>
+  </label>
+  <input type="file" name="photo" id="id_photo" accept="image/*" class="sr-only">
+
   <div class="profile-info">
-    <h1>{{ user.display_name }}</h1>
-    <p class="muted small" style="margin:0 0 8px">@{{ user.username }}. {{ user.get_role_display }} since {{ user.date_joined|date:"F Y" }}</p>
-    {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% else %}<p class="muted">You haven't written anything about yourself yet.</p>{% endif %}
+    <div class="view-only">
+      <h1>{{ user.display_name }}</h1>
+      <p class="muted small" style="margin:0 0 8px">@{{ user.username }}. {{ user.get_role_display }} since {{ user.date_joined|date:"F Y" }}</p>
+      {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% else %}<p class="muted">You haven't written anything about yourself yet.</p>{% endif %}
+    </div>
+    <div class="edit-only">
+      <label class="sr-only" for="{{ form.first_name.id_for_label }}">Your name</label>
+      {{ form.first_name }}
+      {{ form.first_name.errors }}
+      <label class="sr-only" for="{{ form.bio.id_for_label }}">About me</label>
+      {{ form.bio }}
+      <div class="edit-foot">
+        <span class="muted small" id="bio-count"></span>
+        {% if user.avatar_url %}<label class="check-row small">{{ form.remove_photo }} Remove photo</label>{% endif %}
+      </div>
+      {{ form.bio.errors }}
+      <div class="row-actions">
+        <button class="btn ghost sm" type="button" id="cancel-edit">Cancel</button>
+        <button class="btn sm" type="submit">Save</button>
+      </div>
+    </div>
+    {{ form.photo.errors }}
   </div>
-</section>
+
+  <button class="edit-pencil view-only" type="button" id="edit-btn" aria-label="Edit profile" title="Edit profile"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i></button>
+</form>
 
 <div class="stats">
   <div class="card stat"><div class="ico c-yellow"><i class="ph-fill ph-star" aria-hidden="true"></i></div><div class="num" style="color:#B98900">{{ user.xp }}</div><div class="lbl">XP</div></div>
@@ -28,45 +53,37 @@
   </ul>
 </section>
 {% endif %}
-
-<form class="card" method="post" enctype="multipart/form-data" novalidate>
-  {% csrf_token %}
-  <h2>Edit profile</h2>
-  <div class="field">
-    <span class="label">Profile photo</span>
-    <div class="photo-pick">
-      <label class="btn secondary sm" for="id_photo"><i class="ph-bold ph-camera" aria-hidden="true"></i> Choose photo</label>
-      <input type="file" name="photo" id="id_photo" accept="image/*" class="sr-only">
-      <span class="muted small" id="photo-name">JPG or PNG, up to 5 MB.</span>
-    </div>
-    {{ form.photo.errors }}
-    {% if user.avatar_url %}<label class="check-row" style="margin-top:10px">{{ form.remove_photo }} Remove my photo</label>{% endif %}
-  </div>
-  {% include "partials/field.html" with field=form.first_name %}
-  <div class="field">
-    <label for="{{ form.bio.id_for_label }}">About me <span class="muted small" id="bio-count"></span></label>
-    {{ form.bio }}
-    {{ form.bio.errors }}
-  </div>
-  <div class="form-actions">
-    <button class="btn" type="submit">Save profile</button>
-  </div>
-</form>
 {% endblock %}
 
 {% block extra_body %}
 <script>
   (function () {
-    var input = document.getElementById('id_photo'), name = document.getElementById('photo-name');
-    input.addEventListener('change', function () {
-      var f = input.files[0]; if (!f) return;
-      name.textContent = f.name;
+    var card = document.getElementById('profile-card');
+    var photo = document.getElementById('id_photo');
+    var name = document.getElementById('{{ form.first_name.id_for_label }}');
+    var bio = document.getElementById('{{ form.bio.id_for_label }}');
+    var count = document.getElementById('bio-count');
+    var startName = name.value, startBio = bio.value;
+
+    // Elegir foto la sube de una vez
+    photo.addEventListener('change', function () {
+      var f = photo.files[0]; if (!f) return;
       var prev = document.getElementById('photo-preview'), img = document.createElement('img');
       img.id = 'photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f);
       prev.replaceWith(img);
+      card.classList.add('uploading');
+      card.submit();
     });
-    var bio = document.getElementById('{{ form.bio.id_for_label }}'), count = document.getElementById('bio-count');
-    function upd() { count.textContent = '(' + bio.value.length + '/280)'; }
+
+    document.getElementById('edit-btn').addEventListener('click', function () {
+      card.classList.add('editing'); name.focus();
+    });
+    document.getElementById('cancel-edit').addEventListener('click', function () {
+      name.value = startName; bio.value = startBio; upd();
+      card.classList.remove('editing');
+    });
+
+    function upd() { count.textContent = bio.value.length + '/280'; }
     bio.addEventListener('input', upd); upd();
   })();
 </script>
