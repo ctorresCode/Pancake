@@ -1,5 +1,5 @@
 {% extends "panel/base_panel.html" %}
-{% block head_title %}{{ student.display_name }} | Panel{% endblock %}
+{% block head_title %}{{ student.display_name }}{% endblock %}
 {% block panel %}
 <div class="page-head">
   <div><a href="{% url 'panel:students' %}" class="small"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Students</a><h1>{{ student.display_name }}</h1><p class="muted" style="margin:0">{{ student.email }}. Joined {{ student.date_joined|date:"d M Y" }}</p></div>

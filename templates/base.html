@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block head_title %}Learn English{% endblock %} | Pancake</title>
+  <title>{% block title %}{% block head_title %}{% endblock %} | Pancake{% endblock %}</title>
   <meta name="description" content="Pancake: learn English by watching videos and practicing at the same time. Watch. Practice. Progress.">
   <link rel="icon" href="{% static 'img/pancake.svg' %}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
