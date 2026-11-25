@@ -24,6 +24,9 @@ PANCAKE_DOMAIN = os.getenv("PANCAKE_DOMAIN", "").strip()
 for domain in {PANCAKE_DOMAIN, os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()} - {""}:
     ALLOWED_HOSTS.append(domain)
     CSRF_TRUSTED_ORIGINS.append(f"https://{domain}")
+if os.getenv("RAILWAY_ENVIRONMENT"):  # dentro de Railway: aceptar sus dominios aunque se creen después
+    ALLOWED_HOSTS.append(".up.railway.app")
+    CSRF_TRUSTED_ORIGINS.append("https://*.up.railway.app")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
