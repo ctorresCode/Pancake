@@ -18,7 +18,7 @@
     <span class="status-ico"><i class="ph-fill {% if lesson.published %}ph-check-circle{% else %}ph-eye-slash{% endif %}" aria-hidden="true"></i></span>
     <div class="status-text">
       {% if lesson.published %}
-        <b>Published</b><span>Students can see this lesson.</span>
+        <b>Published</b><span>{% if assigned_classes %}Students in its classes can see it.{% else %}Add it to a class below so students can see it.{% endif %}</span>
       {% else %}
         <b>Still a draft</b><span>Students can't see it yet. When you're done adding exercises, press "Publish".</span>
       {% endif %}
@@ -36,7 +36,18 @@
       {% if assigned_classes %}
         <span>Assigned to: {% for c in assigned_classes %}<a href="{% url 'panel:class_detail' c.pk %}">{{ c.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
       {% else %}
-        <span>No class has this lesson yet, so no student can see it. Go to <a href="{% url 'panel:classes' %}">My classes</a> and assign it.</span>
+        <span>No class has this lesson yet, so no student can see it.</span>
+      {% endif %}
+      {% if other_classes %}
+        <form method="post" action="{% url 'panel:lesson_assign' lesson.pk %}" class="assign-inline">
+          {% csrf_token %}
+          <select name="classroom" aria-label="Class">
+            {% for c in other_classes %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select>
+          <button class="btn sm {% if not assigned_classes %}green{% else %}secondary{% endif %}" type="submit"><i class="ph-bold ph-plus" aria-hidden="true"></i> Add to class</button>
+        </form>
+      {% elif not assigned_classes %}
+        <a class="btn sm" href="{% url 'panel:classes' %}">Create a class</a>
       {% endif %}
     </div>
   {% endif %}

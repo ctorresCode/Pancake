@@ -162,11 +162,22 @@ def lesson_edit(request, pk):
         return redirect("panel:lesson_edit", pk=lesson.pk)
     exercises = lesson.exercises.prefetch_related("options").order_by("trigger_seconds", "id")
     classes = Classroom.objects.filter(assignments__lesson=lesson).order_by("name")
+    other = my_classes(request.user).exclude(pk__in=classes).order_by("name")
     return render(
         request,
         "panel/lesson_form.html",
-        {"form": form, "lesson": lesson, "exercises": exercises, "assigned_classes": classes},
+        {"form": form, "lesson": lesson, "exercises": exercises, "assigned_classes": classes, "other_classes": other},
     )
+
+
+@teacher_required
+@require_POST
+def lesson_assign(request, pk):
+    lesson = get_object_or_404(my_lessons(request.user), pk=pk)
+    classroom = get_object_or_404(my_classes(request.user), pk=request.POST.get("classroom"))
+    Assignment.objects.get_or_create(classroom=classroom, lesson=lesson)
+    messages.success(request, f"Students in {classroom.name} can now see this lesson.")
+    return redirect("panel:lesson_edit", pk=lesson.pk)
 
 
 @teacher_required
@@ -176,6 +187,8 @@ def lesson_toggle(request, pk):
     lesson.published = not lesson.published
     lesson.save(update_fields=["published", "updated_at"])
     messages.success(request, f"{lesson.title} is now {'published' if lesson.published else 'a draft'}.")
+    if lesson.published and not lesson.assignments.exists():
+        messages.info(request, "Now add it to a class so your students can see it.")
     nxt = request.POST.get("next", "")
     if url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         return redirect(nxt)

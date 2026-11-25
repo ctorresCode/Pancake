@@ -404,3 +404,19 @@ class PancakeTests(TestCase):
         # el profe ve la descripción del alumno
         self.client.force_login(self.teacher)
         self.assertContains(self.client.get(reverse("panel:student_detail", args=[self.student.pk])), "I love music")
+
+    def test_assign_lesson_from_its_page(self):
+        lesson = Lesson.objects.create(title="WH", level="A1", youtube_id="abcdefghijk", published=True, owner=self.teacher)
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.get(lesson.get_absolute_url()).status_code, 404)
+        self.client.force_login(self.teacher)
+        self.assertContains(self.client.get(reverse("panel:lesson_edit", args=[lesson.pk])), "Add to class")
+        self.client.post(reverse("panel:lesson_assign", args=[lesson.pk]), {"classroom": self.classroom.pk})
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.get(lesson.get_absolute_url()).status_code, 200)
+        # otro profe no puede meter su lección en una clase ajena
+        other = make_user("t9", "t9@example.com", "pass12345!", role="teacher")
+        mine = Lesson.objects.create(title="Mine", level="A1", youtube_id="abcdefghijk", published=True, owner=other)
+        self.client.force_login(other)
+        r = self.client.post(reverse("panel:lesson_assign", args=[mine.pk]), {"classroom": self.classroom.pk})
+        self.assertEqual(r.status_code, 404)

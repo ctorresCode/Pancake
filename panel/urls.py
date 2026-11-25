@@ -10,6 +10,7 @@ urlpatterns = [
     path("lecciones/nueva/", views.lesson_create, name="lesson_create"),
     path("lecciones/<int:pk>/", views.lesson_edit, name="lesson_edit"),
     path("lecciones/<int:pk>/publicar/", views.lesson_toggle, name="lesson_toggle"),
+    path("lecciones/<int:pk>/asignar/", views.lesson_assign, name="lesson_assign"),
     path("lecciones/<int:pk>/eliminar/", views.lesson_delete, name="lesson_delete"),
     path("lecciones/<int:lesson_pk>/ejercicios/nuevo/", views.exercise_create, name="exercise_create"),
     path("ejercicios/<int:pk>/", views.exercise_edit, name="exercise_edit"),

@@ -806,9 +806,9 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .assign-hint {
   display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: #fff; border: 2px solid var(--lilac); margin: -6px 0 18px; font-weight: 700;
 }
-.assign-hint i { font-size: 22px; color: var(--purple); }
+.assign-hint > i { font-size: 22px; color: var(--purple); }
 .assign-hint.warn { background: #FFF8E1; border-color: #FCD34D; }
-.assign-hint.warn i { color: #D97706; }
+.assign-hint.warn > i { color: #D97706; }
 .role-form select { min-height: 40px; padding: 6px 10px; width: auto; }
 
 @media (max-width: 720px) {
@@ -1048,3 +1048,7 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
   .profile-head.editing .profile-info h1 { text-align: center; }
   .edit-only .row-actions .btn { flex: 1; }
 }
+.assign-hint { flex-wrap: wrap; }
+.assign-hint > span { flex: 1; min-width: 200px; }
+.assign-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.assign-inline select { width: auto; min-height: 40px; padding: 6px 10px; }
