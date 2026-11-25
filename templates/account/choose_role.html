@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block head_title %}One more thing{% endblock %}
+{% block main %}
+<div class="auth-wrap" style="padding-top:60px">
+  <div class="card auth-card">
+    {% include "partials/mascot.html" %}
+    <h1>One more thing</h1>
+    <p class="sub muted">Tell us how you'll use Pancake.</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "partials/role_picker.html" with field=form.role %}
+      <button class="btn block" type="submit">Continue</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.views.decorators.http import require_POST
 
 from lessons.models import (
@@ -175,7 +176,10 @@ def lesson_toggle(request, pk):
     lesson.published = not lesson.published
     lesson.save(update_fields=["published", "updated_at"])
     messages.success(request, f"{lesson.title} is now {'published' if lesson.published else 'a draft'}.")
-    return redirect(request.POST.get("next") or "panel:lessons")
+    nxt = request.POST.get("next", "")
+    if url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect("panel:lessons")
 
 
 @teacher_required
@@ -418,16 +422,19 @@ def user_list(request):
     if request.method == "POST":
         target = get_object_or_404(User, pk=request.POST.get("user"))
         role = request.POST.get("role")
-        if target.pk == request.user.pk:
-            messages.error(request, "You can't change your own role.")
-        elif role in dict(User.ROLES):
+        if target.pk == request.user.pk or target.is_admin:
+            messages.error(request, "The admin's role can't be changed here.")
+        elif role in (User.STUDENT, User.TEACHER):  # admin solo hay uno y no se asigna desde aquí
             target.role = role
-            target.is_staff = role == User.ADMIN  # solo el admin entra al admin de Django
-            target.save(update_fields=["role", "is_staff"])
+            target.role_confirmed = True
+            target.save(update_fields=["role", "role_confirmed"])
             messages.success(request, f"{target.display_name} is now {target.get_role_display().lower()}.")
-        return redirect(f"{reverse('panel:users')}?q={request.POST.get('q', '')}")
+        url = reverse("panel:users")
+        q = request.POST.get("q", "").strip()
+        return redirect(f"{url}?{urlencode({'q': q})}" if q else url)
     q = request.GET.get("q", "").strip()
     users = User.objects.order_by("-date_joined")
     if q:
         users = users.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(first_name__icontains=q))
-    return render(request, "panel/user_list.html", {"users": users, "q": q, "roles": User.ROLES})
+    roles = [(User.STUDENT, "Student"), (User.TEACHER, "Teacher")]
+    return render(request, "panel/user_list.html", {"users": users, "q": q, "roles": roles})

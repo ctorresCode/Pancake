@@ -18,11 +18,19 @@ class User(AbstractUser):
     ROLES = [(STUDENT, "Student"), (TEACHER, "Teacher"), (ADMIN, "Admin")]
 
     role = models.CharField("role", max_length=10, choices=ROLES, default=STUDENT)
+    role_confirmed = models.BooleanField(default=False)  # False hasta que elige alumno o profe
     email = models.EmailField("email", unique=True)
     xp = models.PositiveIntegerField("XP", default=0)
     streak = models.PositiveIntegerField("streak", default=0)
     best_streak = models.PositiveIntegerField("best streak", default=0)
     last_activity = models.DateField("last activity", null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # El superusuario (createsuperuser) siempre es admin y no tiene que elegir rol
+        if self.is_superuser:
+            self.role = self.ADMIN
+            self.role_confirmed = True
+        super().save(*args, **kwargs)
 
     @property
     def is_admin(self):

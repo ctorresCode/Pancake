@@ -11,6 +11,7 @@
     <form method="post" action="{% url 'account_signup' %}" novalidate>
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="form-errors">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+      {% include "partials/role_picker.html" with field=form.role %}
       {% include "partials/field.html" with field=form.email label="Email" %}
       {% include "partials/field.html" with field=form.username label="Username" %}
       {% include "partials/field.html" with field=form.password1 label="Password" %}

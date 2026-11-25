@@ -2,7 +2,7 @@
 {% block head_title %}Users | Panel{% endblock %}
 {% block panel %}
 <div class="page-head">
-  <div><h1>Users</h1><p class="muted" style="margin:4px 0 0">Everyone signs up as a student. Change someone to <b>Teacher</b> so they can create lessons and classes.</p></div>
+  <div><h1>Users</h1><p class="muted" style="margin:4px 0 0">People choose student or teacher when they sign up. You can change it here if someone picked the wrong one.</p></div>
   <form method="get" style="min-width:260px"><input type="search" name="q" value="{{ q }}" placeholder="Search by name or email..." aria-label="Search users"></form>
 </div>
 <div class="card">
@@ -15,8 +15,8 @@
         <td><b>{{ u.display_name }}</b>{% if u == user %} <span class="pill lvl">You</span>{% endif %}<div class="muted small">{{ u.email }}</div></td>
         <td class="muted small">{{ u.date_joined|date:"M j, Y" }}</td>
         <td>
-          {% if u == user %}
-            <span class="pill on">{{ u.get_role_display }}</span>
+          {% if u.is_admin %}
+            <span class="pill on">Admin</span>
           {% else %}
             <form method="post" class="role-form">
               {% csrf_token %}

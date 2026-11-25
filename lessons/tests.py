@@ -12,13 +12,18 @@ from .models import Assignment, Classroom, Exercise, ExerciseResult, Lesson, Les
 User = get_user_model()
 
 
+def make_user(*args, **kwargs):
+    kwargs.setdefault("role_confirmed", True)
+    return User.objects.create_user(*args, **kwargs)
+
+
 class PancakeTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         call_command("seed_demo", verbosity=0)
         cls.lesson = Lesson.objects.get(slug="demo-learn-english-with-music")
-        cls.student = User.objects.create_user("ana", "ana@example.com", "pass12345!")
-        cls.teacher = User.objects.create_user("profe", "profe@example.com", "pass12345!", is_staff=True, role="admin")
+        cls.student = make_user("ana", "ana@example.com", "pass12345!")
+        cls.teacher = make_user("profe", "profe@example.com", "pass12345!", is_staff=True, role="admin")
         cls.lesson.owner = cls.teacher
         cls.lesson.save()
         cls.classroom = Classroom.objects.create(name="English 1", teacher=cls.teacher)
@@ -236,17 +241,17 @@ class PancakeTests(TestCase):
         ex = Exercise.objects.create(lesson=other, type=Exercise.TRUE_FALSE, sentence="x", correct_bool=True)
         self.assertEqual(self.post_json(reverse("lessons:api_check", args=[ex.pk]), {"answer": "true"}).status_code, 404)
         # un alumno sin clases no ve nada
-        loner = User.objects.create_user("solo", "solo@example.com", "pass12345!")
+        loner = make_user("solo", "solo@example.com", "pass12345!")
         self.client.force_login(loner)
         self.assertEqual(self.client.get(self.lesson.get_absolute_url()).status_code, 404)
         self.assertContains(self.client.get(reverse("lessons:home")), "Join your class")
 
     def test_join_with_code_and_due_dates(self):
-        teacher = User.objects.create_user("t2", "t2@example.com", "pass12345!", role="teacher")
+        teacher = make_user("t2", "t2@example.com", "pass12345!", role="teacher")
         lesson = Lesson.objects.create(title="Verbs", level="A1", youtube_id="abcdefghijk", published=True, owner=teacher)
         room = Classroom.objects.create(name="English 2", teacher=teacher)
         Assignment.objects.create(classroom=room, lesson=lesson, due_date=timezone.localdate() - timedelta(days=1))
-        new = User.objects.create_user("luis", "luis@example.com", "pass12345!")
+        new = make_user("luis", "luis@example.com", "pass12345!")
         self.client.force_login(new)
         r = self.client.post(reverse("lessons:join"), {"code": "zzz-zzz"})
         self.assertContains(r, "couldn&#x27;t find a class")
@@ -261,7 +266,7 @@ class PancakeTests(TestCase):
         self.assertEqual(self.client.get(lesson.get_absolute_url()).status_code, 200)
 
     def test_teachers_only_touch_their_own_stuff(self):
-        teacher = User.objects.create_user("t3", "t3@example.com", "pass12345!", role="teacher")
+        teacher = make_user("t3", "t3@example.com", "pass12345!", role="teacher")
         self.client.force_login(teacher)
         self.assertEqual(self.client.get(reverse("panel:dashboard")).status_code, 200)
         self.assertEqual(self.client.get(reverse("panel:lesson_edit", args=[self.lesson.pk])).status_code, 404)
@@ -294,3 +299,40 @@ class PancakeTests(TestCase):
         self.client.post(reverse("panel:users"), {"user": self.teacher.pk, "role": "student"})
         self.teacher.refresh_from_db()
         self.assertEqual(self.teacher.role, "admin")
+        # nadie más puede volverse admin
+        self.client.post(reverse("panel:users"), {"user": self.student.pk, "role": "admin"})
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.role, "teacher")
+        self.assertNotContains(self.client.get(reverse("panel:users")), 'value="admin"')
+
+    # Registro y roles
+    def test_signup_lets_you_pick_student_or_teacher(self):
+        data = {"email": "new@example.com", "username": "newprof", "password1": "Pancake#2026x", "password2": "Pancake#2026x"}
+        r = self.client.post(reverse("account_signup"), {**data, "role": "teacher"})
+        self.assertEqual(r.status_code, 302)
+        u = User.objects.get(username="newprof")
+        self.assertEqual((u.role, u.role_confirmed, u.is_staff), ("teacher", True, False))
+        self.assertEqual(self.client.get(reverse("panel:dashboard")).status_code, 200)
+        self.client.logout()
+        # admin no se puede elegir
+        r = self.client.post(reverse("account_signup"), {**data, "email": "x@example.com", "username": "sneaky", "role": "admin"})
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(User.objects.filter(username="sneaky").exists())
+
+    def test_google_users_choose_role_first(self):
+        u = User.objects.create_user("googler", "g@example.com", "pass12345!")  # como queda tras entrar con Google
+        self.client.force_login(u)
+        self.assertRedirects(self.client.get(reverse("lessons:home")), reverse("choose_role"))
+        self.assertRedirects(self.client.get(reverse("panel:dashboard")), reverse("choose_role"))
+        self.assertEqual(self.client.get(reverse("choose_role")).status_code, 200)
+        self.client.post(reverse("choose_role"), {"role": "admin"})
+        u.refresh_from_db()
+        self.assertFalse(u.role_confirmed)
+        self.assertRedirects(self.client.post(reverse("choose_role"), {"role": "student"}), reverse("lessons:home"))
+        u.refresh_from_db()
+        self.assertEqual((u.role, u.role_confirmed), ("student", True))
+        self.assertEqual(self.client.get(reverse("lessons:home")).status_code, 200)
+
+    def test_superuser_is_always_admin(self):
+        boss = User.objects.create_superuser("boss", "boss@example.com", "pass12345!")
+        self.assertEqual((boss.role, boss.role_confirmed, boss.is_admin), ("admin", True, True))

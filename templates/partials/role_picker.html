@@ -1,0 +1,16 @@
+<div class="field">
+  <span class="label">Who are you?</span>
+  <div class="role-picker">
+    {% for radio in field %}
+      <label>
+        {{ radio.tag }}
+        <span class="role-card">
+          <i class="ph-fill {% if radio.data.value == 'teacher' %}ph-chalkboard-teacher{% else %}ph-student{% endif %}" aria-hidden="true"></i>
+          <b>{{ radio.choice_label }}</b>
+          <small>{% if radio.data.value == 'teacher' %}I make lessons and classes{% else %}I join my teacher's class{% endif %}</small>
+        </span>
+      </label>
+    {% endfor %}
+  </div>
+  {{ field.errors }}
+</div>
