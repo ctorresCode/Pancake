@@ -74,6 +74,18 @@
 
   window.PancakeFX = { play: play, buzz: buzz, countUp: countUp, react: react, muted: muted, setMuted: setMuted, reduce: reduce };
 
+  /* ---------- aparecer al hacer scroll ---------- */
+  document.documentElement.classList.add("js");
+  var revealEls = document.querySelectorAll("[data-reveal]");
+  if (reduce || !("IntersectionObserver" in window)) {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    revealEls.forEach(function (el) { io.observe(el); });
+  }
+
   /* ---------- entrada escalonada ---------- */
   if (!reduce) {
     var sel = [".hero > div > *", ".hero-art", ".features > .card", ".page-head", ".lesson-head", ".stats > .card",

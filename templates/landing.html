@@ -1,22 +1,177 @@
 {% extends "base.html" %}
 {% load static %}
-{% block head_title %}Watch. Practice. Progress.{% endblock %}
+{% block head_title %}Learn English while you watch{% endblock %}
 {% block main %}
-<section class="hero">
-  <div>
-    <div class="tagline"><span class="chip label">Watch</span><span class="chip label">Practice</span><span class="chip label">Progress</span></div>
-    <h1>Learn English <span class="accent">while you watch</span> the videos.</h1>
-    <p class="lead">Watch the class and, right when the teacher explains something, an exercise pops up under the video. You practice what you just heard, earn XP and keep your streak going.</p>
-    <div class="ctas">
-      <a class="btn lg" href="{% url 'account_signup' %}">Start for free</a>
-      <a class="btn secondary lg" href="{% url 'account_login' %}">I already have an account</a>
+
+{# ---------- Portada con demo en vivo ---------- #}
+<section class="lp-hero">
+  <div class="lp-copy">
+    <h1>Watch the lesson.<br><span>Answer while it plays.</span></h1>
+    <p class="lead">Pancake turns your teacher's YouTube classes into practice. Every few minutes a quick question shows up under the video, so you use what you just heard.</p>
+    <div class="lp-ctas">
+      <a class="btn lg" href="{% url 'account_signup' %}">Start learning</a>
+      <a class="lp-link" href="{% url 'account_login' %}">I already have an account <i class="ph-bold ph-arrow-right" aria-hidden="true"></i></a>
+    </div>
+    <p class="lp-note"><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Free for students. Join your class with a code.</p>
+  </div>
+
+  <div class="lp-demo" id="lp-demo" aria-hidden="true">
+    <div class="lp-demo-top">
+      <span class="chip streak"><i class="ph-fill ph-fire ico"></i> 3</span>
+      <span class="chip xp"><i class="ph-fill ph-star ico"></i> <span id="lp-xp">120</span> XP</span>
+    </div>
+    <div class="lp-video">
+      <div class="lp-screen">
+        <div class="lp-board"><span>stranger</span><small>/ˈstreɪn.dʒər/</small></div>
+        <div class="lp-play"><i class="ph-fill ph-pause"></i></div>
+        <div class="lp-caption" id="lp-caption"></div>
+      </div>
+      <div class="lp-track">
+        <span class="lp-fill" id="lp-fill"></span>
+        <i class="lp-cue" style="left:34%"></i><i class="lp-cue" style="left:63%"></i><i class="lp-cue" style="left:86%"></i>
+      </div>
+    </div>
+    <div class="lp-card" id="lp-card">
+      <div class="lp-q">
+        {% include "partials/mascot.html" %}
+        <div class="bubble"><b>What does "stranger" mean?</b></div>
+      </div>
+      <div class="lp-opts">
+        <span class="lp-opt">A friend</span>
+        <span class="lp-opt" id="lp-right">Someone you don't know</span>
+        <span class="lp-opt">A neighbor</span>
+      </div>
+      <div class="lp-fb" id="lp-fb"><span class="fb-ico"><i class="ph-bold ph-check"></i></span><b>Nice!</b><span class="xp-pop">+10 XP</span></div>
+      <svg class="lp-cursor" id="lp-cursor" viewBox="0 0 24 24"><path d="M4 2l15 9-6.5 1.5L16 20l-3 1.5-3.6-7.3L4 18z" fill="#2E1065" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
     </div>
   </div>
-  <div class="hero-art"><div class="blob"></div>{% include "partials/mascot.html" %}</div>
 </section>
-<section class="features">
-  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-film-strip" aria-hidden="true"></i></span><h3>Watch</h3><p class="muted">Short, clear video classes at your own pace.</p></div>
-  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-puzzle-piece" aria-hidden="true"></i></span><h3>Practice</h3><p class="muted">Exercises that show up at just the right moment.</p></div>
-  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-trophy" aria-hidden="true"></i></span><h3>Progress</h3><p class="muted">XP, a daily streak and your saved vocabulary.</p></div>
+
+{# ---------- Cómo funciona ---------- #}
+<section class="lp-section" data-reveal>
+  <h2 class="lp-h2">How a lesson works</h2>
+  <ol class="lp-steps">
+    <li data-reveal>
+      <span class="lp-num">1</span>
+      <div class="lp-mini lp-mini-video"><i class="ph-fill ph-play"></i><span class="lp-mini-bar"><span></span></span></div>
+      <h3>Press play</h3>
+      <p>Your teacher picks the video. You watch it right here, no extra apps.</p>
+    </li>
+    <li data-reveal>
+      <span class="lp-num">2</span>
+      <div class="lp-mini lp-mini-tiles"><span class="tile">I</span><span class="tile">am</span><span class="tile">ready</span></div>
+      <h3>Answer as it plays</h3>
+      <p>At the right moment, a short question appears under the video. It takes a few seconds.</p>
+    </li>
+    <li data-reveal>
+      <span class="lp-num">3</span>
+      <div class="lp-mini lp-mini-xp"><span class="chip xp"><i class="ph-fill ph-star ico"></i> +10 XP</span><span class="chip streak"><i class="ph-fill ph-fire ico"></i> 4 days</span></div>
+      <h3>Keep your streak</h3>
+      <p>Right answers give you XP. A little practice every day keeps your streak alive.</p>
+    </li>
+  </ol>
 </section>
+
+{# ---------- Tipos de ejercicio ---------- #}
+<section class="lp-marquee-wrap" data-reveal>
+  <p class="lp-kicker">7 kinds of practice</p>
+  <div class="lp-marquee">
+    <div class="lp-marquee-row">
+      <span class="tile">Choose the answer</span><span class="tile">Fill in the blank</span><span class="tile">True or false</span><span class="tile">Order the words</span><span class="tile">Listen and choose</span><span class="tile">Listen and type</span><span class="tile">Save new words</span>
+      <span class="tile">Choose the answer</span><span class="tile">Fill in the blank</span><span class="tile">True or false</span><span class="tile">Order the words</span><span class="tile">Listen and choose</span><span class="tile">Listen and type</span><span class="tile">Save new words</span>
+    </div>
+  </div>
+</section>
+
+{# ---------- Profesores ---------- #}
+<section class="lp-teachers" data-reveal>
+  <div class="lp-teach-copy">
+    <p class="lp-kicker">For teachers</p>
+    <h2 class="lp-h2">Make a class, share a code, done.</h2>
+    <ul class="lp-list">
+      <li><i class="ph-fill ph-youtube-logo" aria-hidden="true"></i> Paste a YouTube link and drop questions at the exact second you want.</li>
+      <li><i class="ph-fill ph-users-three" aria-hidden="true"></i> Students join with a 6-letter code or a link you send on WhatsApp.</li>
+      <li><i class="ph-fill ph-chart-bar" aria-hidden="true"></i> See who finished, who's behind and which questions trip them up.</li>
+    </ul>
+  </div>
+  <div class="card lp-class">
+    <div class="lp-class-head">
+      <div><b>English 1, Morning</b><span class="muted small">12 students</span></div>
+      <span class="lp-code">K7Q-4MZ</span>
+    </div>
+    <div class="lp-student"><span class="avatar sm">A</span><b>Ana</b><div class="meter green"><span style="width:100%"></span></div><span class="muted small">4/4</span></div>
+    <div class="lp-student"><span class="avatar sm">L</span><b>Luis</b><div class="meter purple"><span style="width:75%"></span></div><span class="muted small">3/4</span></div>
+    <div class="lp-student"><span class="avatar sm">M</span><b>María</b><div class="meter purple"><span style="width:25%"></span></div><span class="muted small">1/4</span></div>
+  </div>
+</section>
+
+{# ---------- Cierre ---------- #}
+<section class="lp-final" data-reveal>
+  {% include "partials/mascot.html" %}
+  <div>
+    <h2>Your next class is one video away.</h2>
+    <p>Create your account and join your teacher's class.</p>
+  </div>
+  <a class="btn yellow lg" href="{% url 'account_signup' %}">Create my account</a>
+</section>
+
+<footer class="lp-footer">
+  <span class="brand small-brand"><img src="{% static 'img/pancake.svg' %}" alt="" width="28" height="28"> Pancake</span>
+  <span class="muted small">Learn English while you watch.</span>
+</footer>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+(function () {
+  var demo = document.getElementById('lp-demo');
+  if (!demo) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var fill = $('lp-fill'), card = $('lp-card'), cap = $('lp-caption'), cursor = $('lp-cursor'),
+      right = $('lp-right'), fb = $('lp-fb'), xp = $('lp-xp'), mascot = card.querySelector('.mascot');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var timers = [];
+  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+  function finalState() {
+    fill.style.width = '34%'; cap.textContent = "A stranger is someone you don't know.";
+    card.classList.add('show'); right.classList.add('ok'); fb.classList.add('show'); xp.textContent = '130';
+  }
+  if (reduce) return finalState();
+
+  function moveCursorTo(el) {
+    var c = card.getBoundingClientRect(), r = el.getBoundingClientRect();
+    cursor.style.transform = 'translate(' + (r.left - c.left + r.width * 0.55) + 'px,' + (r.top - c.top + r.height * 0.55) + 'px)';
+  }
+  function loop() {
+    timers.forEach(clearTimeout); timers = [];
+    fill.style.transition = 'none'; fill.style.width = '6%';
+    card.classList.remove('show'); right.classList.remove('ok', 'press'); fb.classList.remove('show');
+    cursor.classList.remove('show'); cursor.style.transform = 'translate(70%, 120%)';
+    mascot.classList.remove('happy'); xp.textContent = '120'; cap.textContent = '';
+    void fill.offsetWidth;
+    fill.style.transition = 'width 3.2s linear'; fill.style.width = '34%';
+    at(400, function () { cap.textContent = 'Okay, a new word for today...'; });
+    at(1700, function () { cap.textContent = "A stranger is someone you don't know."; });
+    at(3200, function () { card.classList.add('show'); });
+    at(3900, function () { cursor.classList.add('show'); moveCursorTo(right); });
+    at(4900, function () { right.classList.add('press'); });
+    at(5100, function () {
+      right.classList.remove('press'); right.classList.add('ok'); fb.classList.add('show');
+      mascot.classList.add('happy');
+      var n = 120, t = setInterval(function () { n++; xp.textContent = n; if (n >= 130) clearInterval(t); }, 45);
+    });
+    at(5600, function () { cursor.classList.remove('show'); fill.style.transition = 'width 3s linear'; fill.style.width = '60%'; cap.textContent = 'Now, listen to this one...'; });
+    at(9000, loop);
+  }
+  // Solo anima cuando la demo está en pantalla
+  var running = false;
+  new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting && !running) { running = true; loop(); }
+      if (!e.isIntersecting && running) { running = false; timers.forEach(clearTimeout); }
+    });
+  }, { threshold: 0.3 }).observe(demo);
+})();
+</script>
 {% endblock %}
