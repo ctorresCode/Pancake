@@ -24,6 +24,10 @@ class User(AbstractUser):
     streak = models.PositiveIntegerField("streak", default=0)
     best_streak = models.PositiveIntegerField("best streak", default=0)
     last_activity = models.DateField("last activity", null=True, blank=True)
+    bio = models.CharField("about me", max_length=280, blank=True)
+    # La foto va en la base de datos (ya reducida) porque Railway borra los archivos subidos al desplegar
+    avatar = models.BinaryField(null=True, blank=True, editable=False)
+    avatar_updated = models.DateTimeField(null=True, blank=True, editable=False)
 
     def save(self, *args, **kwargs):
         # El superusuario (createsuperuser) siempre es admin y no tiene que elegir rol
@@ -40,6 +44,13 @@ class User(AbstractUser):
     def is_teacher(self):
         """Profesores y admins entran al panel."""
         return self.role in (self.TEACHER, self.ADMIN) or self.is_superuser
+
+    @property
+    def avatar_url(self):
+        if not self.avatar_updated:
+            return ""
+        from django.urls import reverse
+        return f"{reverse('avatar', args=[self.pk])}?v={int(self.avatar_updated.timestamp())}"
 
     @property
     def display_name(self):

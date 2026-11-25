@@ -373,3 +373,33 @@ class PancakeTests(TestCase):
         session = self.client.session
         self.assertEqual(session.get("refreshed"), date.today().isoformat())
         self.assertGreater(session.get_expiry_age(), 60 * 60 * 24 * 29)
+
+    def test_profile_photo_and_bio(self):
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGBA", (800, 500), (124, 58, 237, 128)).save(buf, "PNG")
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.get(reverse("profile")).status_code, 200)
+        photo = SimpleUploadedFile("me.png", buf.getvalue(), content_type="image/png")
+        r = self.client.post(reverse("profile"), {"first_name": "Ana Maria", "bio": "I love music", "photo": photo})
+        self.assertRedirects(r, reverse("profile"))
+        self.student.refresh_from_db()
+        self.assertEqual((self.student.first_name, self.student.bio), ("Ana Maria", "I love music"))
+        img = Image.open(io.BytesIO(bytes(self.student.avatar)))
+        self.assertEqual((img.format, img.size), ("JPEG", (256, 256)))
+        r = self.client.get(self.student.avatar_url)
+        self.assertEqual((r.status_code, r["Content-Type"]), (200, "image/jpeg"))
+        self.assertContains(self.client.get(reverse("lessons:home")), self.student.avatar_url)
+        # un archivo que no es imagen se rechaza
+        fake = SimpleUploadedFile("x.png", b"not an image", content_type="image/png")
+        self.assertEqual(self.client.post(reverse("profile"), {"first_name": "A", "photo": fake}).status_code, 200)
+        self.client.post(reverse("profile"), {"first_name": "Ana Maria", "bio": "I love music", "remove_photo": "on"})
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.avatar)
+        # el profe ve la descripción del alumno
+        self.client.force_login(self.teacher)
+        self.assertContains(self.client.get(reverse("panel:student_detail", args=[self.student.pk])), "I love music")

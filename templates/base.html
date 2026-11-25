@@ -37,9 +37,10 @@
             <i class="ph-fill ph-star ico" aria-hidden="true"></i><span id="xp-val">{{ user.xp }}</span><span class="xp-word">&nbsp;XP</span>
           </span>
           <div class="user-menu">
-            <button class="avatar" type="button" id="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="User menu">{{ user.display_name|first|upper }}</button>
+            <button class="avatar" type="button" id="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="User menu">{% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="">{% else %}{{ user.display_name|first|upper }}{% endif %}</button>
             <div class="dropdown" id="user-dropdown">
               <div class="who"><b>{{ user.display_name }}</b><br><span class="muted small">{{ user.email }}</span></div>
+              <a href="{% url 'profile' %}"><i class="ph-bold ph-user-circle" aria-hidden="true"></i> My profile</a>
               <a href="{% url 'lessons:progress' %}"><i class="ph-bold ph-chart-line-up" aria-hidden="true"></i> My progress</a>
               <a href="{% url 'account_change_password' %}"><i class="ph-bold ph-key" aria-hidden="true"></i> Change password</a>
               {% if user.is_teacher %}<a href="{% url 'panel:dashboard' %}"><i class="ph-bold ph-chalkboard-teacher" aria-hidden="true"></i> Teacher panel</a>{% endif %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block head_title %}My profile{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block main %}
+<section class="card profile-head">
+  <div class="profile-photo">
+    {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="" id="photo-preview">{% else %}<span id="photo-preview" class="photo-initial">{{ user.display_name|first|upper }}</span>{% endif %}
+  </div>
+  <div class="profile-info">
+    <h1>{{ user.display_name }}</h1>
+    <p class="muted small" style="margin:0 0 8px">@{{ user.username }}. {{ user.get_role_display }} since {{ user.date_joined|date:"F Y" }}</p>
+    {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% else %}<p class="muted">You haven't written anything about yourself yet.</p>{% endif %}
+  </div>
+</section>
+
+<div class="stats">
+  <div class="card stat"><div class="ico c-yellow"><i class="ph-fill ph-star" aria-hidden="true"></i></div><div class="num" style="color:#B98900">{{ user.xp }}</div><div class="lbl">XP</div></div>
+  <div class="card stat"><div class="ico c-orange"><i class="ph-fill ph-fire" aria-hidden="true"></i></div><div class="num" style="color:var(--orange)">{{ user.current_streak }}</div><div class="lbl">Streak (best {{ user.best_streak }})</div></div>
+  <div class="card stat"><div class="ico c-green"><i class="ph-fill ph-target" aria-hidden="true"></i></div><div class="num" style="color:var(--green-dark)">{{ accuracy }}%</div><div class="lbl">Accuracy</div></div>
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-crown-simple" aria-hidden="true"></i></div><div class="num" style="color:var(--purple)">{{ completed }}</div><div class="lbl">Lessons done</div></div>
+</div>
+
+{% if classes %}
+<section class="card">
+  <h2>My classes</h2>
+  <ul class="class-chips">
+    {% for c in classes %}<li><b>{{ c.name }}</b><span class="muted small">{{ c.teacher.display_name }}</span></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<form class="card" method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <h2>Edit profile</h2>
+  <div class="field">
+    <span class="label">Profile photo</span>
+    <div class="photo-pick">
+      <label class="btn secondary sm" for="id_photo"><i class="ph-bold ph-camera" aria-hidden="true"></i> Choose photo</label>
+      <input type="file" name="photo" id="id_photo" accept="image/*" class="sr-only">
+      <span class="muted small" id="photo-name">JPG or PNG, up to 5 MB.</span>
+    </div>
+    {{ form.photo.errors }}
+    {% if user.avatar_url %}<label class="check-row" style="margin-top:10px">{{ form.remove_photo }} Remove my photo</label>{% endif %}
+  </div>
+  {% include "partials/field.html" with field=form.first_name %}
+  <div class="field">
+    <label for="{{ form.bio.id_for_label }}">About me <span class="muted small" id="bio-count"></span></label>
+    {{ form.bio }}
+    {{ form.bio.errors }}
+  </div>
+  <div class="form-actions">
+    <button class="btn" type="submit">Save profile</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  (function () {
+    var input = document.getElementById('id_photo'), name = document.getElementById('photo-name');
+    input.addEventListener('change', function () {
+      var f = input.files[0]; if (!f) return;
+      name.textContent = f.name;
+      var prev = document.getElementById('photo-preview'), img = document.createElement('img');
+      img.id = 'photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f);
+      prev.replaceWith(img);
+    });
+    var bio = document.getElementById('{{ form.bio.id_for_label }}'), count = document.getElementById('bio-count');
+    function upd() { count.textContent = '(' + bio.value.length + '/280)'; }
+    bio.addEventListener('input', upd); upd();
+  })();
+</script>
+{% endblock %}

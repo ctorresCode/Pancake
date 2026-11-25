@@ -2,7 +2,7 @@
 {% block head_title %}{{ student.display_name }}{% endblock %}
 {% block panel %}
 <div class="page-head">
-  <div><a href="{% url 'panel:students' %}" class="small"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Students</a><h1>{{ student.display_name }}</h1><p class="muted" style="margin:0">{{ student.email }}. Joined {{ student.date_joined|date:"d M Y" }}</p></div>
+  <div><a href="{% url 'panel:students' %}" class="small"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Students</a><div class="student-head">{% if student.avatar_url %}<img class="student-photo" src="{{ student.avatar_url }}" alt="">{% else %}<span class="student-photo photo-initial">{{ student.display_name|first|upper }}</span>{% endif %}<h1>{{ student.display_name }}</h1></div><p class="muted" style="margin:0">{{ student.email }}. Joined {{ student.date_joined|date:"d M Y" }}</p>{% if student.bio %}<p class="profile-bio" style="margin-top:8px">{{ student.bio }}</p>{% endif %}</div>
 </div>
 {% if classes %}<p class="muted" style="margin:-8px 0 16px">Classes: {% for c in classes %}<a href="{% url 'panel:class_detail' c.pk %}">{{ c.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
 <div class="stats">
