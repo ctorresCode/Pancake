@@ -17,9 +17,7 @@
       {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% else %}<p class="muted">You haven't written anything about yourself yet.</p>{% endif %}
     </div>
     <div class="edit-only">
-      <label class="sr-only" for="{{ form.first_name.id_for_label }}">Your name</label>
-      {{ form.first_name }}
-      {{ form.first_name.errors }}
+      <h1>{{ user.display_name }}</h1>
       <label class="sr-only" for="{{ form.bio.id_for_label }}">About me</label>
       {{ form.bio }}
       <div class="edit-foot">
@@ -35,7 +33,7 @@
     {{ form.photo.errors }}
   </div>
 
-  <button class="edit-pencil view-only" type="button" id="edit-btn" aria-label="Edit profile" title="Edit profile"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i></button>
+  <button class="edit-pencil view-only" type="button" id="edit-btn" aria-label="Edit description" title="Edit description"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i></button>
 </form>
 
 <div class="stats">
@@ -60,10 +58,9 @@
   (function () {
     var card = document.getElementById('profile-card');
     var photo = document.getElementById('id_photo');
-    var name = document.getElementById('{{ form.first_name.id_for_label }}');
     var bio = document.getElementById('{{ form.bio.id_for_label }}');
     var count = document.getElementById('bio-count');
-    var startName = name.value, startBio = bio.value;
+    var startBio = bio.value;
 
     // Elegir foto la sube de una vez
     photo.addEventListener('change', function () {
@@ -76,10 +73,10 @@
     });
 
     document.getElementById('edit-btn').addEventListener('click', function () {
-      card.classList.add('editing'); name.focus();
+      card.classList.add('editing'); bio.focus();
     });
     document.getElementById('cancel-edit').addEventListener('click', function () {
-      name.value = startName; bio.value = startBio; upd();
+      bio.value = startBio; upd();
       card.classList.remove('editing');
     });
 

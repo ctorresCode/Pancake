@@ -1036,7 +1036,7 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .profile-head .edit-only { display: none; }
 .profile-head.editing .edit-only { display: grid; gap: 10px; }
 .profile-head.editing .view-only { display: none; }
-.edit-only input { font-size: 22px; font-weight: 900; }
+.edit-only h1 { margin: 0; }
 .edit-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: -4px; }
 .edit-only .row-actions { justify-content: flex-end; }
 @media (hover: none) { .photo-overlay { opacity: .85; background: transparent; place-items: end; } .photo-overlay i { background: var(--purple); border-radius: 50%; padding: 6px; font-size: 18px; margin: 4px; } }

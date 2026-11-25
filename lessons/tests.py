@@ -385,10 +385,11 @@ class PancakeTests(TestCase):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get(reverse("profile")).status_code, 200)
         photo = SimpleUploadedFile("me.png", buf.getvalue(), content_type="image/png")
-        r = self.client.post(reverse("profile"), {"first_name": "Ana Maria", "bio": "I love music", "photo": photo})
+        r = self.client.post(reverse("profile"), {"first_name": "Otro nombre", "bio": "I love music", "photo": photo})
         self.assertRedirects(r, reverse("profile"))
         self.student.refresh_from_db()
-        self.assertEqual((self.student.first_name, self.student.bio), ("Ana Maria", "I love music"))
+        self.assertEqual(self.student.bio, "I love music")
+        self.assertEqual(self.student.first_name, "")  # el nombre no se puede cambiar desde el perfil
         img = Image.open(io.BytesIO(bytes(self.student.avatar)))
         self.assertEqual((img.format, img.size), ("JPEG", (256, 256)))
         r = self.client.get(self.student.avatar_url)
@@ -396,8 +397,8 @@ class PancakeTests(TestCase):
         self.assertContains(self.client.get(reverse("lessons:home")), self.student.avatar_url)
         # un archivo que no es imagen se rechaza
         fake = SimpleUploadedFile("x.png", b"not an image", content_type="image/png")
-        self.assertEqual(self.client.post(reverse("profile"), {"first_name": "A", "photo": fake}).status_code, 200)
-        self.client.post(reverse("profile"), {"first_name": "Ana Maria", "bio": "I love music", "remove_photo": "on"})
+        self.assertEqual(self.client.post(reverse("profile"), {"bio": "x", "photo": fake}).status_code, 200)
+        self.client.post(reverse("profile"), {"bio": "I love music", "remove_photo": "on"})
         self.student.refresh_from_db()
         self.assertIsNone(self.student.avatar)
         # el profe ve la descripción del alumno

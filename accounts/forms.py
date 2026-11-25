@@ -33,10 +33,10 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["first_name", "bio"]
-        labels = {"first_name": "Your name", "bio": "About me"}
+        # El nombre no se edita aquí: así el profe siempre sabe quién es cada alumno
+        fields = ["bio"]
+        labels = {"bio": "About me"}
         widgets = {
-            "first_name": forms.TextInput(attrs={"placeholder": "How should we call you?"}),
             "bio": forms.Textarea(attrs={"rows": 3, "maxlength": 280, "placeholder": "e.g. I'm learning English to travel."}),
         }
 
