@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
@@ -117,10 +118,16 @@ def join(request, code=None):
     user = request.user
     raw = request.POST.get("code") if request.method == "POST" else code
     classroom, error = None, None
+    # Límite de intentos para que no se puedan adivinar códigos probando muchos seguidos
+    key = f"join-tries:{user.pk}"
+    if raw and cache.get(key, 0) >= 15:
+        error = "Too many tries. Wait a few minutes and try again."
+        raw = None
     if raw:
         classroom = Classroom.objects.filter(code=clean_code(raw)).select_related("teacher").first()
         if not classroom:
             error = "We couldn't find a class with that code. Check it and try again."
+            cache.set(key, cache.get(key, 0) + 1, 600)
     if request.method == "POST" and classroom:
         if classroom.teacher_id == user.pk:
             messages.info(request, "You're the teacher of this class.")

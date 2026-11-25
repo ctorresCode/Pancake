@@ -356,3 +356,13 @@ class PancakeTests(TestCase):
         self.assertEqual(kwargs["json"]["sender"], {"name": "Pancake", "email": "profe@example.com"})
         self.assertEqual(kwargs["json"]["to"], [{"email": "ana@example.com"}])
         self.assertEqual(kwargs["json"]["subject"], "Reset your password")
+
+    def test_join_code_attempts_are_limited(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.client.force_login(self.student)
+        for _ in range(15):
+            self.client.post(reverse("lessons:join"), {"code": "AAA-AAA"})
+        r = self.client.post(reverse("lessons:join"), {"code": self.classroom.code})
+        self.assertContains(r, "Too many tries")
+        cache.clear()

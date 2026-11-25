@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,8 +14,12 @@ def env_bool(name, default=False):
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env_bool("DEBUG", False)
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("Falta SECRET_KEY. En el servidor es obligatoria.")
+    SECRET_KEY = "dev-insecure-key-solo-local"
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
@@ -115,6 +120,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # el JavaScript de la lección lee el token desde la página, no de la cookie
+X_FRAME_OPTIONS = "DENY"
 
 # YouTube exige el Referer para reproducir videos embebidos (si no: "video no disponible")
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"

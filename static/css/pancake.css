@@ -975,3 +975,29 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .role-picker input:checked + .role-card { border-color: var(--purple); background: var(--lilac); }
 .role-picker input:checked + .role-card i { color: var(--purple); }
 .role-picker input:focus-visible + .role-card { outline: 3px solid var(--purple); outline-offset: 2px; }
+
+/* Arreglos de pantallas pequeñas */
+@media (max-width: 960px) {
+  .nav { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; padding: 10px 16px; border-bottom: 2px solid var(--lilac); box-shadow: var(--shadow); }
+  .nav.open { display: flex; }
+  .nav a { padding: 12px 14px; }
+  .menu-toggle { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; border: 2px solid var(--lilac); background: #fff; font-size: 20px; cursor: pointer; }
+}
+.panel-layout > div, .form-layout > *, .home-grid > * { min-width: 0; }
+.search-form { min-width: 260px; }
+.lesson-head { flex-wrap: wrap; }
+.back-link { padding: 8px 0; }
+.cue::after, .seg { position: relative; }
+.cue::after { content: ""; position: absolute; inset: -12px; }
+.seg::after { content: ""; position: absolute; inset: -14px 0; }
+@media (max-width: 720px) {
+  .search-form { min-width: 0; width: 100%; }
+  .sum-item span { font-size: 12px; }
+  .lesson-head .row-actions { width: 100%; justify-content: flex-end; }
+  .tbl th, .tbl td { padding: 10px 8px; }
+}
+@media (max-width: 720px) {
+  #capture-btn { font-size: 15px; letter-spacing: .02em; padding: 0 14px; }
+  .sticky-actions .btn { font-size: 13px; letter-spacing: .03em; padding: 0 12px; min-height: 46px; white-space: nowrap; }
+  .sticky-actions .btn.lg { font-size: 15px; }
+}
