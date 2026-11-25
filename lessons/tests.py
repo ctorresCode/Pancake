@@ -336,3 +336,23 @@ class PancakeTests(TestCase):
     def test_superuser_is_always_admin(self):
         boss = User.objects.create_superuser("boss", "boss@example.com", "pass12345!")
         self.assertEqual((boss.role, boss.role_confirmed, boss.is_admin), ("admin", True, True))
+
+    def test_brevo_backend_builds_the_request(self):
+        from unittest import mock
+
+        from django.core import mail
+        from django.test import override_settings
+
+        with override_settings(
+            EMAIL_BACKEND="pancake.email_backend.BrevoEmailBackend",
+            BREVO_API_KEY="xkeysib-test",
+            DEFAULT_FROM_EMAIL="Pancake <profe@example.com>",
+        ), mock.patch("pancake.email_backend.requests.post") as post:
+            post.return_value.raise_for_status.return_value = None
+            sent = mail.send_mail("Reset your password", "Hello", None, ["ana@example.com"])
+        self.assertEqual(sent, 1)
+        kwargs = post.call_args.kwargs
+        self.assertEqual(kwargs["headers"]["api-key"], "xkeysib-test")
+        self.assertEqual(kwargs["json"]["sender"], {"name": "Pancake", "email": "profe@example.com"})
+        self.assertEqual(kwargs["json"]["to"], [{"email": "ana@example.com"}])
+        self.assertEqual(kwargs["json"]["subject"], "Reset your password")

@@ -139,20 +139,21 @@ GOOGLE_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
-# Correo: si hay servidor SMTP configurado se verifican los correos al registrarse.
-# Sin verificación no es seguro unir automáticamente una cuenta de Google con una cuenta local
-# que tenga el mismo correo (alguien pudo registrarse antes con un correo ajeno).
-EMAIL_HOST = os.getenv("EMAIL_HOST", "").strip()
-if EMAIL_HOST:
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-    EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+# Correo: Brevo (o Resend) por API. Sin clave, los correos solo se imprimen en la consola.
+# La verificación queda opcional hasta probar que los correos llegan; luego se pone
+# ACCOUNT_EMAIL_VERIFICATION=mandatory en las variables del servidor.
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+if BREVO_API_KEY:
+    EMAIL_BACKEND = "pancake.email_backend.BrevoEmailBackend"
+elif RESEND_API_KEY:
+    EMAIL_BACKEND = "pancake.email_backend.ResendEmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "mandatory" if EMAIL_HOST else "none")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip() or "Pancake <support.pancake@gmail.com>"
+SENDS_EMAIL = bool(BREVO_API_KEY or RESEND_API_KEY)
+ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "optional" if SENDS_EMAIL else "none")
+# Unir una cuenta de Google con una cuenta local del mismo correo solo es seguro si los correos se verifican
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = ACCOUNT_EMAIL_VERIFICATION == "mandatory"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = SOCIALACCOUNT_EMAIL_AUTHENTICATION
 SOCIALACCOUNT_PROVIDERS = {
