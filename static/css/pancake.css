@@ -1100,3 +1100,5 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .qa-ico.yellow { box-shadow: 0 5px 0 var(--yellow-dark); }
 .fb-ico { line-height: 1; }
 .avatar:not(:has(img)) { line-height: 1; padding-top: 1px; }
+.lp-mini-xp { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+.lp-mini .tile { border-bottom: 0; box-shadow: 0 4px 0 rgba(0,0,0,.22); display: inline-grid; place-items: center; line-height: 1; padding-top: 0; padding-bottom: 0; }
