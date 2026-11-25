@@ -1041,3 +1041,4 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .edit-only .row-actions { justify-content: flex-end; }
 @media (hover: none) { .photo-overlay { opacity: .85; background: transparent; place-items: end; } .photo-overlay i { background: var(--purple); border-radius: 50%; padding: 6px; font-size: 18px; margin: 4px; } }
 @media (max-width: 720px) { .profile-head.editing { text-align: left; } }
+.bio-label { font-weight: 900; font-size: 15px; margin-bottom: -4px; }
