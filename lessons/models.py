@@ -68,7 +68,8 @@ class Lesson(models.Model):
 
     @property
     def thumbnail(self):
-        return f"https://img.youtube.com/vi/{self.youtube_id}/hqdefault.jpg"
+        # mqdefault es 320x180: más liviana que hqdefault y sin franjas negras
+        return f"https://img.youtube.com/vi/{self.youtube_id}/mqdefault.jpg"
 
 
 class Exercise(models.Model):
@@ -206,8 +207,8 @@ class Exercise(models.Model):
 
     def correct_display(self):
         if self.type in self.OPTION_TYPES:
-            opt = self.options.filter(is_correct=True).first()
-            return opt.text if opt else ""
+            # all() aprovecha el prefetch_related cuando la vista lo hizo
+            return next((o.text for o in self.options.all() if o.is_correct), "")
         if self.type == self.TRUE_FALSE:
             return "True" if self.correct_bool else "False"
         if self.type == self.ORDER_WORDS:

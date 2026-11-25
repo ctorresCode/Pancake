@@ -1,5 +1,6 @@
 """Configuración de Pancake."""
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "accounts.middleware.LocalhostRedirectMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",  # comprime las páginas (Django mezcla bytes al azar contra BREACH)
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -121,6 +123,17 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# En el servidor: archivos con nombre único por versión, comprimidos y en caché por un año.
+# En local y en los tests se sirven tal cual, sin pasar por collectstatic.
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        if DEBUG or TESTING
+        else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    },
+}
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 SESSION_COOKIE_HTTPONLY = True

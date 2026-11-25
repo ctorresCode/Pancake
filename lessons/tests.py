@@ -420,3 +420,19 @@ class PancakeTests(TestCase):
         self.client.force_login(other)
         r = self.client.post(reverse("panel:lesson_assign", args=[mine.pk]), {"classroom": self.classroom.pk})
         self.assertEqual(r.status_code, 404)
+
+    def test_home_queries_do_not_grow_with_classes(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.student)
+        self.client.get(reverse("lessons:home"))
+        with CaptureQueriesContext(connection) as before:
+            self.client.get(reverse("lessons:home"))
+        for i in range(5):
+            room = Classroom.objects.create(name=f"Extra {i}", teacher=self.teacher)
+            Membership.objects.create(user=self.student, classroom=room)
+            Assignment.objects.create(classroom=room, lesson=self.lesson)
+        with CaptureQueriesContext(connection) as after:
+            self.client.get(reverse("lessons:home"))
+        self.assertEqual(len(after), len(before))

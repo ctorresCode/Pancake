@@ -5,13 +5,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
+from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import (
+    Assignment,
     Classroom,
     Exercise,
     ExerciseResult,
@@ -71,10 +73,13 @@ def home(request):
         return lesson
 
     classes, seen = [], set()
-    memberships = Membership.objects.filter(user=user).select_related("classroom__teacher")
+    published = Assignment.objects.filter(lesson__published=True).select_related("lesson")
+    memberships = Membership.objects.filter(user=user).select_related("classroom__teacher").prefetch_related(
+        Prefetch("classroom__assignments", queryset=published, to_attr="published_assignments")
+    )
     for m in memberships:
         items = []
-        for a in m.classroom.assignments.filter(lesson__published=True).select_related("lesson"):
+        for a in m.classroom.published_assignments:
             decorate(a.lesson)
             done = a.lesson.is_completed
             a.is_late = bool(a.due_date and a.due_date < today and not done)
@@ -334,11 +339,14 @@ def my_progress(request):
 
     # Actividad de los últimos 7 días
     today = timezone.localdate()
-    week = []
-    for offset in range(6, -1, -1):
-        day = today - timedelta(days=offset)
-        xp = results.filter(updated_at__date=day).aggregate(s=Sum("xp_awarded"))["s"] or 0
-        week.append({"day": day, "xp": xp})
+    per_day = dict(
+        results.filter(updated_at__date__gte=today - timedelta(days=6))
+        .annotate(d=TruncDate("updated_at"))
+        .values("d")
+        .annotate(s=Sum("xp_awarded"))
+        .values_list("d", "s")
+    )
+    week = [{"day": d, "xp": per_day.get(d) or 0} for d in (today - timedelta(days=o) for o in range(6, -1, -1))]
     max_xp = max([d["xp"] for d in week] + [1])
     for d in week:
         d["height"] = round(d["xp"] * 100 / max_xp)

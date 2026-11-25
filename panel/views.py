@@ -160,7 +160,7 @@ def lesson_edit(request, pk):
         form.save()
         messages.success(request, "Lesson saved.")
         return redirect("panel:lesson_edit", pk=lesson.pk)
-    exercises = lesson.exercises.prefetch_related("options").order_by("trigger_seconds", "id")
+    exercises = lesson.exercises.prefetch_related("options").order_by("trigger_seconds", "id")  # correct_display usa el prefetch
     classes = Classroom.objects.filter(assignments__lesson=lesson).order_by("name")
     other = my_classes(request.user).exclude(pk__in=classes).order_by("name")
     return render(
