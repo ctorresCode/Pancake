@@ -1052,3 +1052,9 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .assign-hint > span { flex: 1; min-width: 200px; }
 .assign-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .assign-inline select { width: auto; min-height: 40px; padding: 6px 10px; }
+
+/* Pasos de la portada: número centrado y línea de círculo a círculo */
+.lp-steps::before { display: none; }
+.lp-num { border-bottom: 0; box-shadow: 0 4px 0 var(--purple-dark); line-height: 1; padding: 0; }
+.lp-steps li:not(:last-child)::after { content: ""; position: absolute; top: 18px; left: 50px; right: -16px; border-top: 3px dashed var(--lavender); }
+@media (max-width: 960px) { .lp-steps li::after { display: none; } }
