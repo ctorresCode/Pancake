@@ -1,0 +1,34 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}My classes | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div><h1>My classes</h1><p class="muted" style="margin:4px 0 0">Students join a class with its code and see the lessons you assign to it.</p></div>
+</div>
+
+<form method="post" class="card new-class">
+  {% csrf_token %}
+  <label for="new-class-name" class="label">New class</label>
+  <div class="time-row">
+    <input type="text" id="new-class-name" name="name" maxlength="80" placeholder="e.g. English 1 - Morning" required>
+    <button class="btn" type="submit"><i class="ph-bold ph-plus" aria-hidden="true"></i> Create</button>
+  </div>
+</form>
+
+<div class="lesson-cards">
+  {% for c in classes %}
+    <a class="card class-card" href="{% url 'panel:class_detail' c.pk %}">
+      <span class="qa-ico"><i class="ph-fill ph-users-three" aria-hidden="true"></i></span>
+      <b class="lc-title">{{ c.name }}</b>
+      <span class="muted small">{{ c.n_students }} student{{ c.n_students|pluralize }}, {{ c.n_lessons }} lesson{{ c.n_lessons|pluralize }}</span>
+      <span class="pill lvl">Code {{ c.code_display }}</span>
+      {% if user.is_admin and c.teacher != user %}<span class="muted small">Teacher: {{ c.teacher.display_name }}</span>{% endif %}
+    </a>
+  {% empty %}
+    <div class="card empty" style="grid-column:1/-1">
+      {% include "partials/mascot.html" %}
+      <h2>You don't have classes yet</h2>
+      <p class="muted">Create one above, then share its code with your students.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

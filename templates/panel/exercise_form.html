@@ -1,0 +1,243 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}{% if exercise %}Edit exercise{% else %}New exercise{% endif %} | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div>
+    <a href="{% url 'panel:lesson_edit' lesson.pk %}" class="back-link"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Back to "{{ lesson.title }}"</a>
+    <h1>{% if exercise %}Edit exercise{% else %}New exercise{% endif %}</h1>
+  </div>
+</div>
+
+<form method="post" novalidate id="ex-form" class="simple-form">
+  {% csrf_token %}
+  {% if form.errors or formset.non_form_errors %}
+    <div class="form-errors"><i class="ph-fill ph-warning-circle" aria-hidden="true"></i> Something's missing. Check the messages in red.</div>
+  {% endif %}
+
+  {# ================= PASO 1 ================= #}
+  <section class="card step">
+    <h2><span class="step-num">1</span> What kind of exercise?</h2>
+    <div class="type-picker">
+      {% for value, name, desc, icon, main in type_help %}{% if main %}
+        <label>
+          <input type="radio" name="type" value="{{ value }}" {% if form.type.value == value %}checked{% endif %}>
+          <div class="tcard"><span class="e"><i class="ph-fill ph-{{ icon }}" aria-hidden="true"></i></span><b>{{ name }}</b><small>{{ desc }}</small></div>
+        </label>
+      {% endif %}{% endfor %}
+    </div>
+    <details class="more-types" {% if more_open %}open{% endif %}>
+      <summary>More types</summary>
+      <div class="type-picker" style="margin-top:10px">
+        {% for value, name, desc, icon, main in type_help %}{% if not main %}
+          <label>
+            <input type="radio" name="type" value="{{ value }}" {% if form.type.value == value %}checked{% endif %}>
+            <div class="tcard"><span class="e"><i class="ph-fill ph-{{ icon }}" aria-hidden="true"></i></span><b>{{ name }}</b><small>{{ desc }}</small></div>
+          </label>
+        {% endif %}{% endfor %}
+      </div>
+    </details>
+    {{ form.type.errors }}
+  </section>
+
+  {# ================= PASO 2 ================= #}
+  <section class="card step">
+    <h2><span class="step-num">2</span> When does it show up in the video?</h2>
+    <p class="muted">Play the video. When you get to the right moment, press the purple button.</p>
+    <div class="video-frame step-video"><div class="video-ratio"><div id="player"></div></div></div>
+    <button class="btn lg block" type="button" id="capture-btn" style="margin-top:16px">
+      <i class="ph-fill ph-map-pin" aria-hidden="true"></i> Put the exercise here (<span id="now">0:00</span>)
+    </button>
+    <div class="time-chosen">
+      <label for="{{ form.trigger_seconds.id_for_label }}">The exercise will show up at:</label>
+      {{ form.trigger_seconds }}
+    </div>
+    {{ form.trigger_seconds.errors }}
+  </section>
+
+  {# ================= PASO 3 ================= #}
+  <section class="card step">
+    <h2><span class="step-num">3</span> Write the exercise</h2>
+
+    {# Pregunta (elegir respuesta / escuchar y elegir) #}
+    <div class="field" data-show="multiple_choice listening">
+      <label for="{{ form.prompt.id_for_label }}">Question</label>
+      <input type="text" name="prompt" id="{{ form.prompt.id_for_label }}" value="{{ form.prompt.value|default_if_none:'' }}" maxlength="300" placeholder="e.g. What does &quot;stranger&quot; mean?">
+      {{ form.prompt.errors }}
+    </div>
+
+    {# Frase: cambia según el tipo #}
+    <div class="field" data-show="fill_blank true_false order_words flashcard">
+      <label for="{{ form.sentence.id_for_label }}">
+        <span data-show="fill_blank">Sentence <span class="muted">(use ___ for the missing word)</span></span>
+        <span data-show="true_false">Sentence</span>
+        <span data-show="order_words">Correct sentence <span class="muted">(the student will see the words mixed up)</span></span>
+        <span data-show="flashcard">Word or expression in English</span>
+      </label>
+      <div class="time-row">
+        <input type="text" name="sentence" id="{{ form.sentence.id_for_label }}" value="{{ form.sentence.value|default_if_none:'' }}" maxlength="300" placeholder="e.g. She is ___ a book.">
+        <button class="btn secondary sm" type="button" id="blank-btn" data-show="fill_blank">Add ___</button>
+      </div>
+      {{ form.sentence.errors }}
+    </div>
+
+    {# Verdadero / Falso #}
+    <div class="field" data-show="true_false">
+      <span class="label">That sentence is:</span>
+      <div class="tf-choice">
+        {% for radio in form.correct_bool %}
+          <label class="tf-{{ radio.data.value }}">{{ radio.tag }}<span><i class="ph-fill {% if radio.data.value == 'true' %}ph-check-circle{% else %}ph-x-circle{% endif %}" aria-hidden="true"></i> {{ radio.choice_label }}</span></label>
+        {% endfor %}
+      </div>
+      {{ form.correct_bool.errors }}
+    </div>
+
+    {# Respuesta escrita / significado #}
+    <div class="field" data-show="listen_type flashcard">
+      <label for="{{ form.answer_text.id_for_label }}">
+        <span data-show="listen_type">What do they say? <span class="muted">(the correct answer)</span></span>
+        <span data-show="flashcard">What does it mean in Spanish?</span>
+      </label>
+      <input type="text" name="answer_text" id="{{ form.answer_text.id_for_label }}" value="{{ form.answer_text.value|default_if_none:'' }}" maxlength="300">
+      {{ form.answer_text.errors }}
+    </div>
+
+    {# Opciones #}
+    <div data-show="multiple_choice fill_blank listening">
+      <span class="label">
+        <span data-show="multiple_choice listening">Answers</span>
+        <span data-show="fill_blank">Words to choose from</span>
+        <span class="muted">(tap the circle next to the right one)</span>
+      </span>
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="errorlist">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+      {% for f in formset %}
+        {{ f.id }}
+        <div class="opt-row">
+          <label class="correct-dot" title="Mark as correct">{{ f.is_correct }}<span class="sr-only">Correct</span><i class="ph-bold ph-check" aria-hidden="true"></i></label>
+          <div>{{ f.text }}{{ f.text.errors }}</div>
+          {% if f.instance.pk %}<label class="del" title="Remove this answer">{{ f.DELETE }}<i class="ph-bold ph-trash" aria-hidden="true"></i><span class="sr-only">Remove</span></label>{% else %}<span></span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="field" style="margin-top:8px">
+      <label for="{{ form.explanation.id_for_label }}">Explanation for the student <span class="muted">(optional, shown after they answer)</span></label>
+      <input type="text" name="explanation" id="{{ form.explanation.id_for_label }}" value="{{ form.explanation.value|default_if_none:'' }}" maxlength="400" placeholder="e.g. A &quot;stranger&quot; is someone you don't know.">
+    </div>
+  </section>
+
+  {# ================= OPCIONES AVANZADAS ================= #}
+  <details class="card more" {% if form.clip_start.errors or form.clip_end.errors or form.xp.errors %}open{% endif %}>
+    <summary><i class="ph-bold ph-sliders-horizontal" aria-hidden="true"></i> More options (you don't need to touch these)</summary>
+    <div style="margin-top:16px">
+      <label class="check-row" style="margin-bottom:16px">{{ form.pause_video }} Pause the video when this exercise shows up</label>
+
+      <div class="field" data-show="fill_blank true_false order_words listen_type">
+        <label for="id_prompt_alt">Custom instruction</label>
+        <input type="text" id="id_prompt_alt" data-mirror="prompt" placeholder="Leave it empty to use an automatic instruction">
+      </div>
+
+      <div data-show="listening listen_type">
+        <p class="muted small">The part of the video the student can replay. Leave it empty to use the 5 seconds before the exercise.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="{{ form.clip_start.id_for_label }}">From</label>
+            <div class="time-row">{{ form.clip_start }}<button class="btn secondary sm" type="button" data-capture="{{ form.clip_start.id_for_label }}" aria-label="Use the current video time"><i class="ph-bold ph-map-pin" aria-hidden="true"></i></button></div>
+            {{ form.clip_start.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ form.clip_end.id_for_label }}">To</label>
+            <div class="time-row">{{ form.clip_end }}<button class="btn secondary sm" type="button" data-capture="{{ form.clip_end.id_for_label }}" aria-label="Use the current video time"><i class="ph-bold ph-map-pin" aria-hidden="true"></i></button></div>
+            {{ form.clip_end.errors }}
+          </div>
+        </div>
+      </div>
+
+      <div class="field" style="max-width:200px">
+        <label for="{{ form.xp.id_for_label }}">Points (XP) it gives</label>
+        {{ form.xp }}
+        {{ form.xp.errors }}
+      </div>
+      <div data-show="fill_blank order_words listen_type true_false">
+        <div class="field">
+          <label for="{{ form.extra_words.id_for_label }}" data-show="order_words">Extra words to make it harder <span class="muted">(separated by commas)</span></label>
+          <input type="text" name="extra_words" id="{{ form.extra_words.id_for_label }}" value="{{ form.extra_words.value|default_if_none:'' }}" data-show="order_words">
+        </div>
+        <p class="muted small" data-show="listen_type">To accept more than one answer, separate them with | (e.g. I'm fine|I am fine).</p>
+      </div>
+    </div>
+  </details>
+
+  <div class="sticky-actions">
+    <span class="sa-hint"><i class="ph-fill ph-floppy-disk" aria-hidden="true"></i> Done? Save your exercise</span>
+    {% if exercise %}<a class="btn ghost" href="{% url 'panel:exercise_delete' exercise.pk %}"><i class="ph-bold ph-trash" aria-hidden="true"></i> Delete</a>{% endif %}
+    <button class="btn secondary" type="submit" name="add_another" value="1">Save and add another</button>
+    <button class="btn lg" type="submit"><i class="ph-bold ph-check" aria-hidden="true"></i> Save</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+(function () {
+  var form = document.getElementById('ex-form');
+  function current() { var r = form.querySelector('input[name=type]:checked'); return r ? r.value : 'multiple_choice'; }
+
+  // Mostrar solo lo que corresponde al tipo elegido
+  function apply() {
+    var t = current();
+    form.querySelectorAll('[data-show]').forEach(function (el) {
+      el.classList.toggle('visible', el.getAttribute('data-show').split(' ').indexOf(t) >= 0);
+    });
+    var s = document.getElementById('{{ form.sentence.id_for_label }}');
+    var ph = { fill_blank: 'e.g. She is ___ a book.', true_false: 'e.g. "Gonna" means "going to".', order_words: 'e.g. I want to learn English', flashcard: "e.g. How's it going?" };
+    if (s && ph[t]) s.placeholder = ph[t];
+  }
+  form.addEventListener('change', function (e) {
+    if (e.target.name === 'type') apply();
+    // la respuesta correcta es solo una
+    if (/-is_correct$/.test(e.target.name || '') && e.target.checked) {
+      form.querySelectorAll('input[name$="-is_correct"]').forEach(function (c) { if (c !== e.target) c.checked = false; });
+    }
+  });
+  apply();
+
+  // "Instrucción personalizada" usa el mismo campo que la pregunta
+  var prompt = form.querySelector('input[name=prompt]'), alt = document.getElementById('id_prompt_alt');
+  alt.value = prompt.value;
+  alt.addEventListener('input', function () { prompt.value = alt.value; });
+  prompt.addEventListener('input', function () { alt.value = prompt.value; });
+
+  // Botón para poner el hueco ___
+  document.getElementById('blank-btn').addEventListener('click', function () {
+    var s = document.getElementById('{{ form.sentence.id_for_label }}');
+    var a = s.selectionStart != null ? s.selectionStart : s.value.length, b = s.selectionEnd != null ? s.selectionEnd : a;
+    s.value = s.value.slice(0, a) + '___' + s.value.slice(b);
+    s.focus(); s.setSelectionRange(a + 3, a + 3);
+  });
+
+  // Video para elegir el momento
+  var player, ready = false;
+  function fmt(s) { s = Math.floor(s || 0); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  window.onYouTubeIframeAPIReady = function () {
+    player = new YT.Player('player', {
+      videoId: '{{ lesson.youtube_id|escapejs }}',
+      playerVars: { rel: 0, modestbranding: 1, playsinline: 1, hl: 'en', start: {{ form.instance.trigger_seconds|default:0 }} },
+      events: { onReady: function () { ready = true; } }
+    });
+  };
+  setInterval(function () { if (ready) document.getElementById('now').textContent = fmt(player.getCurrentTime()); }, 300);
+  function capture(id) {
+    if (!ready) return;
+    var input = document.getElementById(id);
+    input.value = fmt(player.getCurrentTime());
+    input.classList.remove('flash'); void input.offsetWidth; input.classList.add('flash');
+  }
+  document.getElementById('capture-btn').addEventListener('click', function () { capture('{{ form.trigger_seconds.id_for_label }}'); });
+  document.querySelectorAll('[data-capture]').forEach(function (b) {
+    b.addEventListener('click', function () { capture(b.getAttribute('data-capture')); });
+  });
+})();
+</script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+{% endblock %}

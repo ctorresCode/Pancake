@@ -1,0 +1,83 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block head_title %}Learn English{% endblock %} | Pancake</title>
+  <meta name="description" content="Pancake: learn English by watching videos and practicing at the same time. Watch. Practice. Progress.">
+  <link rel="icon" href="{% static 'img/pancake.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <link rel="stylesheet" href="{% static 'css/pancake.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar">
+    <div class="container">
+      <a class="brand" href="{% if user.is_authenticated %}{% url 'lessons:home' %}{% else %}{% url 'landing' %}{% endif %}">
+        <img src="{% static 'img/pancake.svg' %}" alt="" width="40" height="40"><span class="brand-text">Pancake</span>
+      </a>
+      {% if user.is_authenticated %}
+        {% with url_name=request.resolver_match.url_name ns=request.resolver_match.namespace %}
+        <nav class="nav" id="main-nav" aria-label="Main">
+          <a href="{% url 'lessons:home' %}" class="{% if ns == 'lessons' and url_name == 'home' or url_name == 'detail' %}active{% endif %}">Lessons</a>
+          <a href="{% url 'lessons:vocabulary' %}" class="{% if url_name == 'vocabulary' %}active{% endif %}">My vocabulary</a>
+          <a href="{% url 'lessons:progress' %}" class="{% if url_name == 'progress' %}active{% endif %}">My progress</a>
+          {% if user.is_teacher %}<a href="{% url 'panel:dashboard' %}" class="{% if ns == 'panel' %}active{% endif %}">Teacher panel</a>{% endif %}
+        </nav>
+        {% endwith %}
+        <div class="top-right">
+          <span class="chip streak {% if not user.current_streak %}off{% endif %}" id="streak-chip" title="Daily streak">
+            <i class="ph-fill ph-fire ico" aria-hidden="true"></i><span id="streak-val">{{ user.current_streak }}</span><span class="sr-only"> day streak</span>
+          </span>
+          <span class="chip xp" id="xp-chip" title="Experience">
+            <i class="ph-fill ph-star ico" aria-hidden="true"></i><span id="xp-val">{{ user.xp }}</span><span class="xp-word">&nbsp;XP</span>
+          </span>
+          <div class="user-menu">
+            <button class="avatar" type="button" id="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="User menu">{{ user.display_name|first|upper }}</button>
+            <div class="dropdown" id="user-dropdown">
+              <div class="who"><b>{{ user.display_name }}</b><br><span class="muted small">{{ user.email }}</span></div>
+              <a href="{% url 'lessons:progress' %}"><i class="ph-bold ph-chart-line-up" aria-hidden="true"></i> My progress</a>
+              <a href="{% url 'account_change_password' %}"><i class="ph-bold ph-key" aria-hidden="true"></i> Change password</a>
+              {% if user.is_teacher %}<a href="{% url 'panel:dashboard' %}"><i class="ph-bold ph-chalkboard-teacher" aria-hidden="true"></i> Teacher panel</a>{% endif %}
+              <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button type="submit"><i class="ph-bold ph-sign-out" aria-hidden="true"></i> Log out</button></form>
+            </div>
+          </div>
+          <button class="menu-toggle" type="button" id="menu-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Open menu"><i class="ph-bold ph-list" aria-hidden="true"></i></button>
+        </div>
+      {% else %}
+        <div class="top-right">
+          <a class="btn ghost sm" href="{% url 'account_login' %}">Log in</a>
+          <a class="btn sm" href="{% url 'account_signup' %}">Sign up</a>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main>
+    <div class="container {% block container_class %}{% endblock %}">
+      {% if messages %}
+        <ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% block main %}{% endblock %}
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var btn = document.getElementById('avatar-btn'), dd = document.getElementById('user-dropdown');
+      if (btn) {
+        btn.addEventListener('click', function (e) { e.stopPropagation(); var o = dd.classList.toggle('open'); btn.setAttribute('aria-expanded', o); });
+        document.addEventListener('click', function () { dd.classList.remove('open'); btn.setAttribute('aria-expanded', false); });
+      }
+      var mt = document.getElementById('menu-toggle'), nav = document.getElementById('main-nav');
+      if (mt) mt.addEventListener('click', function () { var o = nav.classList.toggle('open'); mt.setAttribute('aria-expanded', o); });
+    })();
+  </script>
+  <script src="{% static 'js/fx.js' %}"></script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

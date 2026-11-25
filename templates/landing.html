@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_title %}Watch. Practice. Progress.{% endblock %}
+{% block main %}
+<section class="hero">
+  <div>
+    <div class="tagline"><span class="chip label">Watch</span><span class="chip label">Practice</span><span class="chip label">Progress</span></div>
+    <h1>Learn English <span class="accent">while you watch</span> the videos.</h1>
+    <p class="lead">Watch the class and, right when the teacher explains something, an exercise pops up under the video. You practice what you just heard, earn XP and keep your streak going.</p>
+    <div class="ctas">
+      <a class="btn lg" href="{% url 'account_signup' %}">Start for free</a>
+      <a class="btn secondary lg" href="{% url 'account_login' %}">I already have an account</a>
+    </div>
+  </div>
+  <div class="hero-art"><div class="blob"></div>{% include "partials/mascot.html" %}</div>
+</section>
+<section class="features">
+  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-film-strip" aria-hidden="true"></i></span><h3>Watch</h3><p class="muted">Short, clear video classes at your own pace.</p></div>
+  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-puzzle-piece" aria-hidden="true"></i></span><h3>Practice</h3><p class="muted">Exercises that show up at just the right moment.</p></div>
+  <div class="card feature"><span class="feat-ico"><i class="ph-fill ph-trophy" aria-hidden="true"></i></span><h3>Progress</h3><p class="muted">XP, a daily streak and your saved vocabulary.</p></div>
+</section>
+{% endblock %}

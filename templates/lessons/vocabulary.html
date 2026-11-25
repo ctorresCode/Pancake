@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_title %}My vocabulary{% endblock %}
+{% block main %}
+<div class="page-head">
+  <div><h1>My vocabulary</h1><p class="muted" style="margin:4px 0 0">Tap a card to see what it means.</p></div>
+  <span class="chip label">{{ items|length }} expressions</span>
+</div>
+{% if items %}
+  <div class="vocab-grid">
+    {% for item in items %}
+      <div class="vcard" tabindex="0" role="button" aria-label="Flip card: {{ item.exercise.sentence }}">
+        <div class="vcard-inner">
+          <div class="vface">
+            <div class="expr">{{ item.exercise.sentence }}</div>
+            <small>{{ item.exercise.lesson.title }}</small>
+          </div>
+          <div class="vface back">
+            <div style="font-size:20px">{{ item.exercise.answer_text }}</div>
+            {% if item.exercise.explanation %}<small>{{ item.exercise.explanation }}</small>{% endif %}
+            <form method="post" action="{% url 'lessons:vocab_remove' item.pk %}" style="margin-top:12px">{% csrf_token %}
+              <button class="btn sm secondary" type="submit" onclick="event.stopPropagation()">Remove</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty">
+    {% include "partials/mascot.html" %}
+    <h2>Your vocabulary is empty</h2>
+    <p class="muted">When a new expression shows up in a lesson, tap "Save to my vocabulary".</p>
+    <a class="btn" href="{% url 'lessons:home' %}">Go to lessons</a>
+  </div>
+{% endif %}
+{% endblock %}
+{% block extra_body %}
+<script>
+  document.querySelectorAll('.vcard').forEach(function (c) {
+    function flip() { c.classList.toggle('flipped'); }
+    c.addEventListener('click', flip);
+    c.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+  });
+</script>
+{% endblock %}

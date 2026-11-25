@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load static %}
+{% block main %}
+  <div class="auth-wrap" style="padding-top:60px">
+    <div class="card auth-card generic">
+      {% include "partials/mascot.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

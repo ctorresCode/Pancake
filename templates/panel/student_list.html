@@ -1,0 +1,28 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}Students | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <h1>Students</h1>
+  <form method="get" style="min-width:260px"><input type="search" name="q" value="{{ q }}" placeholder="Search by name or email..." aria-label="Search students"></form>
+</div>
+<div class="card">
+  <div class="table-wrap">
+  <table class="tbl">
+    <thead><tr><th>Student</th><th>XP</th><th>Streak</th><th>Lessons</th><th>Last seen</th></tr></thead>
+    <tbody>
+    {% for s in students %}
+      <tr>
+        <td><a href="{% url 'panel:student_detail' s.pk %}"><b>{{ s.display_name }}</b></a><div class="muted small">{{ s.email }}</div></td>
+        <td><span class="chip xp"><i class="ph-fill ph-star ico" aria-hidden="true"></i> {{ s.xp }}</span></td>
+        <td><span class="chip streak {% if not s.current_streak %}off{% endif %}"><i class="ph-fill ph-fire ico" aria-hidden="true"></i> {{ s.current_streak }}</span></td>
+        <td>{{ s.n_completed }} completed</td>
+        <td class="muted small">{% if s.last_activity %}{{ s.last_activity|date:"d M Y" }}{% else %}Never{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted center" style="padding:30px">{% if q %}Nobody matches "{{ q }}".{% else %}No students have signed up yet.{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

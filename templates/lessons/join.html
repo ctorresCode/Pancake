@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_title %}Join a class{% endblock %}
+{% block main %}
+<div class="auth-wrap" style="padding-top:60px">
+  <div class="card auth-card">
+    {% include "partials/mascot.html" %}
+    {% if classroom %}
+      <h1>Join {{ classroom.name }}?</h1>
+      <p class="sub muted">Teacher: <b>{{ classroom.teacher.display_name }}</b></p>
+      <form method="post" action="{% url 'lessons:join' %}">
+        {% csrf_token %}
+        <input type="hidden" name="code" value="{{ classroom.code }}">
+        <button class="btn block lg" type="submit">Join class</button>
+      </form>
+      <div class="auth-foot"><a href="{% url 'lessons:home' %}">Not now</a></div>
+    {% else %}
+      <h1>Join a class</h1>
+      <p class="sub muted">Ask your teacher for the class code.</p>
+      <form method="post" action="{% url 'lessons:join' %}" novalidate>
+        {% csrf_token %}
+        <div class="field">
+          <label for="id_code">Class code</label>
+          <input type="text" name="code" id="id_code" value="{{ code }}" placeholder="e.g. K7Q-4MZ" autocomplete="off" autocapitalize="characters" class="code-input" required autofocus>
+          {% if error %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endif %}
+        </div>
+        <button class="btn block" type="submit">Join</button>
+      </form>
+      <div class="auth-foot"><a href="{% url 'lessons:home' %}">Back to lessons</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

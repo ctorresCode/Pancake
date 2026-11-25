@@ -1,0 +1,38 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}Users | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div><h1>Users</h1><p class="muted" style="margin:4px 0 0">Everyone signs up as a student. Change someone to <b>Teacher</b> so they can create lessons and classes.</p></div>
+  <form method="get" style="min-width:260px"><input type="search" name="q" value="{{ q }}" placeholder="Search by name or email..." aria-label="Search users"></form>
+</div>
+<div class="card">
+  <div class="table-wrap">
+  <table class="tbl">
+    <thead><tr><th>User</th><th>Joined</th><th>Role</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td><b>{{ u.display_name }}</b>{% if u == user %} <span class="pill lvl">You</span>{% endif %}<div class="muted small">{{ u.email }}</div></td>
+        <td class="muted small">{{ u.date_joined|date:"M j, Y" }}</td>
+        <td>
+          {% if u == user %}
+            <span class="pill on">{{ u.get_role_display }}</span>
+          {% else %}
+            <form method="post" class="role-form">
+              {% csrf_token %}
+              <input type="hidden" name="user" value="{{ u.pk }}"><input type="hidden" name="q" value="{{ q }}">
+              <select name="role" aria-label="Role for {{ u.display_name }}" onchange="this.form.submit()">
+                {% for value, label in roles %}<option value="{{ value }}" {% if u.role == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3" class="muted center" style="padding:24px">Nobody matches "{{ q }}".</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

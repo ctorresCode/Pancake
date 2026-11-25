@@ -1,0 +1,124 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}{{ classroom.name }} | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div>
+    <a href="{% url 'panel:classes' %}" class="back-link"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Back to my classes</a>
+    <h1>{{ classroom.name }}</h1>
+    {% if user.is_admin and classroom.teacher != user %}<p class="muted" style="margin:0">Teacher: {{ classroom.teacher.display_name }}</p>{% endif %}
+  </div>
+</div>
+
+{# ---------- Código para unirse ---------- #}
+<section class="card join-card">
+  <div>
+    <span class="label">Class code</span>
+    <div class="code-big">{{ classroom.code_display }}</div>
+    <p class="muted small" style="margin:4px 0 0">Students go to <b>Join a class</b> and type this code, or open the link.</p>
+  </div>
+  <div class="join-actions">
+    <button class="btn" type="button" data-copy="{{ join_url }}"><i class="ph-bold ph-link" aria-hidden="true"></i> Copy invite link</button>
+    <button class="btn secondary sm" type="button" data-copy="{{ classroom.code_display }}"><i class="ph-bold ph-copy" aria-hidden="true"></i> Copy code</button>
+    <form method="post" class="inline" onsubmit="return confirm('Make a new code? The current one will stop working.')">
+      {% csrf_token %}<input type="hidden" name="action" value="new_code">
+      <button class="btn ghost sm" type="submit"><i class="ph-bold ph-arrows-clockwise" aria-hidden="true"></i> New code</button>
+    </form>
+  </div>
+</section>
+
+{# ---------- Lecciones asignadas ---------- #}
+<section class="card">
+  <h2>Assigned lessons ({{ n_lessons }})</h2>
+  <div class="ex-list" style="margin-bottom:16px">
+    {% for a in assignments %}
+      <div class="ex-item assign-item">
+        <img class="thumb" src="{{ a.lesson.thumbnail }}" alt="" loading="lazy">
+        <div>
+          <div class="ttl">{{ a.lesson.title }}{% if not a.lesson.published %} <span class="pill off">Draft</span>{% endif %}</div>
+          <div class="sub">
+            {% if a.due_date %}Due {{ a.due_date|date:"D, M j" }}{% if a.is_past %} (past){% endif %}{% else %}No due date{% endif %}.
+            {{ a.n_done }} of {{ members|length }} finished.
+          </div>
+        </div>
+        <form method="post" class="inline">
+          {% csrf_token %}<input type="hidden" name="action" value="unassign"><input type="hidden" name="assignment" value="{{ a.pk }}">
+          <button class="btn ghost sm" type="submit" title="Remove from this class"><i class="ph-bold ph-x" aria-hidden="true"></i> Remove</button>
+        </form>
+      </div>
+    {% empty %}
+      <div class="empty-mini"><i class="ph-fill ph-film-strip" aria-hidden="true"></i><p><b>No lessons assigned yet.</b><br><span class="muted">Students in this class won't see anything until you assign a lesson.</span></p></div>
+    {% endfor %}
+  </div>
+
+  {% if available %}
+    <form method="post" class="assign-form">
+      {% csrf_token %}<input type="hidden" name="action" value="assign">
+      <div class="field">
+        <label for="assign-lesson">Assign a lesson</label>
+        <select name="lesson" id="assign-lesson" required>
+          {% for l in available %}<option value="{{ l.pk }}">{{ l.title }}{% if not l.published %} (draft){% endif %}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="assign-due">Due date <span class="muted">(optional)</span></label>
+        <input type="date" name="due_date" id="assign-due">
+      </div>
+      <button class="btn" type="submit"><i class="ph-bold ph-plus" aria-hidden="true"></i> Assign</button>
+    </form>
+  {% else %}
+    <p class="muted small">All your lessons are already in this class. <a href="{% url 'panel:lesson_create' %}">Create a new lesson</a>.</p>
+  {% endif %}
+</section>
+
+{# ---------- Alumnos ---------- #}
+<section class="card">
+  <h2>Students ({{ members|length }})</h2>
+  <div class="table-wrap">
+  <table class="tbl">
+    <thead><tr><th>Student</th><th>Lessons done</th><th>XP</th><th>Last seen</th><th></th></tr></thead>
+    <tbody>
+    {% for m in members %}
+      <tr>
+        <td><a href="{% url 'panel:student_detail' m.user.pk %}"><b>{{ m.user.display_name }}</b></a><div class="muted small">{{ m.user.email }}</div></td>
+        <td>{{ m.n_done }} of {{ n_lessons }}</td>
+        <td><span class="chip xp"><i class="ph-fill ph-star ico" aria-hidden="true"></i> {{ m.user.xp }}</span></td>
+        <td class="muted small">{% if m.user.last_activity %}{{ m.user.last_activity|date:"M j" }}{% else %}Never{% endif %}</td>
+        <td>
+          <form method="post" class="inline" onsubmit="return confirm('Remove {{ m.user.display_name|escapejs }} from this class?')">
+            {% csrf_token %}<input type="hidden" name="action" value="remove_student"><input type="hidden" name="user" value="{{ m.user.pk }}">
+            <button class="btn ghost sm" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted center" style="padding:24px">Nobody has joined yet. Share the code or the invite link.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<details class="card more">
+  <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Rename or delete this class</summary>
+  <form method="post" style="margin-top:16px">
+    {% csrf_token %}<input type="hidden" name="action" value="rename">
+    <div class="field"><label for="rename">Class name</label>
+      <div class="time-row"><input type="text" id="rename" name="name" value="{{ classroom.name }}" maxlength="80" required><button class="btn secondary sm" type="submit">Save</button></div>
+    </div>
+  </form>
+  <a class="btn ghost" href="{% url 'panel:class_delete' classroom.pk %}"><i class="ph-bold ph-trash" aria-hidden="true"></i> Delete class</a>
+</details>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = b.getAttribute('data-copy'), label = b.innerHTML;
+      function done() { b.innerHTML = '<i class="ph-bold ph-check" aria-hidden="true"></i> Copied'; setTimeout(function () { b.innerHTML = label; }, 1600); }
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { prompt('Copy this:', text); });
+      else prompt('Copy this:', text);
+    });
+  });
+</script>
+{% endblock %}

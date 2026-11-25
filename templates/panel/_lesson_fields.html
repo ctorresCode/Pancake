@@ -1,0 +1,25 @@
+<div class="field">
+  <label for="{{ form.title.id_for_label }}" class="step-label"><span class="step-num">1</span> {{ form.title.label }}</label>
+  {{ form.title }}
+  {{ form.title.errors }}
+</div>
+<div class="field">
+  <label for="{{ form.youtube_id.id_for_label }}" class="step-label"><span class="step-num">2</span> {{ form.youtube_id.label }}</label>
+  {{ form.youtube_id }}
+  <div class="help">{{ form.youtube_id.help_text }}</div>
+  {{ form.youtube_id.errors }}
+  <div class="yt-preview" id="yt-preview"></div>
+</div>
+<div class="field">
+  <span class="step-label"><span class="step-num">3</span> {{ form.level.label }}</span>
+  <div class="chip-choices">
+    {% for radio in form.level %}
+      <label>{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+    {% endfor %}
+  </div>
+  {{ form.level.errors }}
+</div>
+<div class="field">
+  <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+  {{ form.description }}
+</div>

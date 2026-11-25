@@ -1,0 +1,122 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}{% if lesson %}{{ lesson.title }}{% else %}New lesson{% endif %} | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div>
+    <a href="{% url 'panel:lessons' %}" class="back-link"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Back to my lessons</a>
+    <h1>{% if lesson %}{{ lesson.title }}{% else %}Create a new lesson{% endif %}</h1>
+  </div>
+  {% if lesson %}
+    <a class="btn secondary sm" href="{{ lesson.get_absolute_url }}"><i class="ph-bold ph-eye" aria-hidden="true"></i> View as student</a>
+  {% endif %}
+</div>
+
+{% if lesson %}
+  {# ---------- Estado: ¿los alumnos la ven? ---------- #}
+  <form method="post" action="{% url 'panel:lesson_toggle' lesson.pk %}" class="status-banner {% if lesson.published %}on{% else %}off{% endif %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'panel:lesson_edit' lesson.pk %}">
+    <span class="status-ico"><i class="ph-fill {% if lesson.published %}ph-check-circle{% else %}ph-eye-slash{% endif %}" aria-hidden="true"></i></span>
+    <div class="status-text">
+      {% if lesson.published %}
+        <b>Published</b><span>Students can see this lesson.</span>
+      {% else %}
+        <b>Still a draft</b><span>Students can't see it yet. When you're done adding exercises, press "Publish".</span>
+      {% endif %}
+    </div>
+    {% if lesson.published %}
+      <button class="btn secondary sm" type="submit">Hide</button>
+    {% else %}
+      <button class="btn green" type="submit" {% if not exercises %}disabled title="Add at least one exercise first"{% endif %}><i class="ph-bold ph-rocket-launch" aria-hidden="true"></i> Publish</button>
+    {% endif %}
+  </form>
+
+  {% if lesson.published %}
+    <div class="assign-hint {% if not assigned_classes %}warn{% endif %}">
+      <i class="ph-fill {% if assigned_classes %}ph-users-three{% else %}ph-warning-circle{% endif %}" aria-hidden="true"></i>
+      {% if assigned_classes %}
+        <span>Assigned to: {% for c in assigned_classes %}<a href="{% url 'panel:class_detail' c.pk %}">{{ c.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+      {% else %}
+        <span>No class has this lesson yet, so no student can see it. Go to <a href="{% url 'panel:classes' %}">My classes</a> and assign it.</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ---------- Ejercicios ---------- #}
+  <div class="card">
+    <div class="page-head" style="margin-bottom:6px">
+      <h2 style="margin:0">Exercises in this lesson</h2>
+    </div>
+    <p class="muted" style="margin-bottom:16px">Each exercise shows up for the student at the moment of the video you choose.</p>
+
+    <div class="ex-list">
+      {% for ex in exercises %}
+        <a class="ex-item" href="{% url 'panel:exercise_edit' ex.pk %}">
+          <div class="time" title="Shows up at {{ ex.trigger_label }}">{{ ex.trigger_label }}</div>
+          <div>
+            <div class="ttl">{{ ex.title_text|truncatechars:70 }}</div>
+            <div class="sub">
+              {{ ex.get_type_display }}{% if ex.correct_display %}. Answer: <b>{{ ex.correct_display|truncatechars:40 }}</b>{% endif %}
+            </div>
+          </div>
+          <span class="edit-hint"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i> Edit</span>
+        </a>
+      {% empty %}
+        <div class="empty-mini">
+          <i class="ph-fill ph-film-strip" aria-hidden="true"></i>
+          <p><b>This lesson has no exercises yet.</b><br><span class="muted">Add the first one with the button below.</span></p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <a class="btn block lg" style="margin-top:16px" href="{% url 'panel:exercise_create' lesson.pk %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> Add an exercise</a>
+  </div>
+
+  {# ---------- Datos de la lección (escondidos) ---------- #}
+  <details class="card more" {% if form.errors %}open{% endif %}>
+    <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Change name, video or level</summary>
+    <form method="post" novalidate style="margin-top:16px">
+      {% csrf_token %}
+      {% include "panel/_lesson_fields.html" %}
+      <div class="form-actions">
+        <a class="btn ghost" href="{% url 'panel:lesson_delete' lesson.pk %}"><i class="ph-bold ph-trash" aria-hidden="true"></i> Delete lesson</a>
+        <button class="btn" type="submit">Save changes</button>
+      </div>
+    </form>
+  </details>
+
+{% else %}
+  <form class="card" method="post" novalidate style="max-width:720px">
+    {% csrf_token %}
+    {% include "panel/_lesson_fields.html" %}
+    <div class="form-actions">
+      <a class="btn ghost" href="{% url 'panel:lessons' %}">Cancel</a>
+      <button class="btn lg" type="submit">Create lesson</button>
+    </div>
+  </form>
+{% endif %}
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  // Vista previa del video al pegar el link
+  (function () {
+    var input = document.getElementById('id_youtube_id'), box = document.getElementById('yt-preview');
+    if (!input || !box) return;
+    function parse(v) {
+      var m = (v || '').match(/(?:v=|\/embed\/|\/shorts\/|\/live\/|youtu\.be\/)([A-Za-z0-9_-]{11})/) || (v || '').trim().match(/^([A-Za-z0-9_-]{11})$/);
+      return m ? m[1] : null;
+    }
+    function show() {
+      var id = parse(input.value);
+      box.innerHTML = '';
+      if (id) {
+        box.innerHTML = '<img src="https://img.youtube.com/vi/' + id + '/hqdefault.jpg" alt="Video preview"><span class="ok"><i class="ph-fill ph-check-circle"></i> Video found</span>';
+      } else if (input.value.trim()) {
+        box.innerHTML = '<span class="bad"><i class="ph-fill ph-warning-circle"></i> That link doesn&#39;t look like YouTube</span>';
+      }
+    }
+    input.addEventListener('input', show); show();
+  })();
+</script>
+{% endblock %}

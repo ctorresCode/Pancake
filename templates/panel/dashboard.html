@@ -1,0 +1,58 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}Teacher panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div><h1>Hi, {{ user.display_name }}!</h1><p class="muted" style="margin:4px 0 0">What do you want to do today?</p></div>
+</div>
+
+<div class="quick-actions">
+  <a class="card qa" href="{% url 'panel:lesson_create' %}"><span class="qa-ico"><i class="ph-fill ph-plus-circle" aria-hidden="true"></i></span><b>Create a lesson</b><span class="muted small">Paste a YouTube video and add exercises.</span></a>
+  <a class="card qa" href="{% url 'panel:classes' %}"><span class="qa-ico teal"><i class="ph-fill ph-users-three" aria-hidden="true"></i></span><b>My classes</b><span class="muted small">Share the class code and assign lessons.</span></a>
+  <a class="card qa" href="{% url 'panel:students' %}"><span class="qa-ico yellow"><i class="ph-fill ph-graduation-cap" aria-hidden="true"></i></span><b>See my students</b><span class="muted small">See how they're doing and how much they practice.</span></a>
+</div>
+
+<div class="stats">
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-graduation-cap" aria-hidden="true"></i></div><div class="num">{{ n_students }}</div><div class="lbl">Students</div></div>
+  <div class="card stat"><div class="ico c-orange"><i class="ph-fill ph-fire" aria-hidden="true"></i></div><div class="num" style="color:var(--orange)">{{ active_today }}</div><div class="lbl">Active today ({{ active_week }} this week)</div></div>
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-film-strip" aria-hidden="true"></i></div><div class="num" style="color:var(--purple)">{{ n_published }}/{{ n_lessons }}</div><div class="lbl">Published lessons</div></div>
+  <div class="card stat"><div class="ico c-green"><i class="ph-fill ph-target" aria-hidden="true"></i></div><div class="num" style="color:var(--green-dark)">{{ accuracy }}%</div><div class="lbl">Correct ({{ answered_total }} answers)</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2><i class="ph-fill ph-trophy c-yellow" aria-hidden="true"></i> Top students</h2>
+    <table class="tbl">
+      {% for s in top %}
+        <tr><td><b>{{ forloop.counter }}.</b> <a href="{% url 'panel:student_detail' s.pk %}">{{ s.display_name }}</a></td><td style="text-align:right"><span class="chip xp"><i class="ph-fill ph-star ico" aria-hidden="true"></i> {{ s.xp }}</span></td></tr>
+      {% empty %}<tr><td class="muted">No students yet.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="card">
+    <h2><i class="ph-fill ph-warning-circle c-coral" aria-hidden="true"></i> Hardest exercises</h2>
+    <table class="tbl">
+      {% for ex in hard %}
+        <tr>
+          <td><a href="{% url 'panel:exercise_edit' ex.pk %}">{{ ex.title_text|truncatechars:42 }}</a><div class="muted small">{{ ex.lesson.title }}, at {{ ex.trigger_label }}</div></td>
+          <td style="text-align:right"><span class="pill off">{{ ex.wrong }} of {{ ex.tries }} got it wrong</span></td>
+        </tr>
+      {% empty %}<tr><td class="muted">Not enough data yet.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2><i class="ph-fill ph-clock-counter-clockwise c-purple" aria-hidden="true"></i> Recent activity</h2>
+  <div class="table-wrap">
+  <table class="tbl">
+    {% for r in recent %}
+      <tr>
+        <td><b>{{ r.user.display_name }}</b></td>
+        <td>{{ r.exercise.title_text|truncatechars:50 }}<div class="muted small">{{ r.exercise.lesson.title }}</div></td>
+        <td>{% if r.status == 'correct' %}<span class="pill on"><i class="ph-bold ph-check" aria-hidden="true"></i> Correct</span>{% else %}<span class="pill off"><i class="ph-bold ph-x" aria-hidden="true"></i> Wrong</span>{% endif %}</td>
+        <td class="muted small">{{ r.updated_at|timesince }} ago</td>
+      </tr>
+    {% empty %}<tr><td class="muted">No activity yet.</td></tr>{% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

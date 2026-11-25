@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block head_title %}My progress{% endblock %}
+{% block main %}
+<div class="page-head"><h1>My progress</h1></div>
+<div class="stats">
+  <div class="card stat"><div class="ico c-yellow"><i class="ph-fill ph-star" aria-hidden="true"></i></div><div class="num" style="color:#B98900">{{ user.xp }}</div><div class="lbl">Total XP</div></div>
+  <div class="card stat"><div class="ico c-orange"><i class="ph-fill ph-fire" aria-hidden="true"></i></div><div class="num" style="color:var(--orange)">{{ user.current_streak }}</div><div class="lbl">Streak (best: {{ user.best_streak }})</div></div>
+  <div class="card stat"><div class="ico c-green"><i class="ph-fill ph-target" aria-hidden="true"></i></div><div class="num" style="color:var(--green-dark)">{{ accuracy }}%</div><div class="lbl">Accuracy</div></div>
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-crown-simple" aria-hidden="true"></i></div><div class="num" style="color:var(--purple)">{{ completed_count }}</div><div class="lbl">Lessons completed</div></div>
+</div>
+
+<div class="card">
+  <h2>XP in the last 7 days</h2>
+  <div class="week">
+    {% for d in week %}
+      <div class="bar {% if forloop.last %}today{% endif %}">
+        <b>{{ d.xp }}</b>
+        <span style="height: {{ d.height }}%"></span>
+        {{ d.day|date:"D" }}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Lessons</h2>
+  {% for r in rows %}
+    <div class="lesson-row">
+      <div>
+        <a href="{{ r.lesson.get_absolute_url }}"><b>{{ r.lesson.title }}</b></a>
+        <div class="muted small">Level {{ r.lesson.level }}, {% if r.completed %}completed <i class="ph-fill ph-crown-simple c-yellow" aria-hidden="true"></i>{% else %}in progress{% endif %}</div>
+      </div>
+      <div>
+        <div class="small muted">Video watched {{ r.watched }}%</div>
+        <div class="meter purple"><span style="width: {{ r.watched }}%"></span></div>
+      </div>
+      <div>
+        <div class="small muted">Exercises {{ r.answered }}/{{ r.lesson.n_exercises }}, {{ r.correct }} right</div>
+        <div class="meter green"><span style="width: {% if r.lesson.n_exercises %}{% widthratio r.answered r.lesson.n_exercises 100 %}{% else %}0{% endif %}%"></span></div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="muted">You haven't started any lessons yet. <a href="{% url 'lessons:home' %}">Start now!</a></p>
+  {% endfor %}
+</div>
+{% endblock %}

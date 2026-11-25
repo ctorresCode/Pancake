@@ -1,0 +1,32 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}My lessons | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <h1>My lessons</h1>
+  <a class="btn" href="{% url 'panel:lesson_create' %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> Create lesson</a>
+</div>
+
+<div class="lesson-cards">
+  {% for l in lessons %}
+    <a class="card lesson-card" href="{% url 'panel:lesson_edit' l.pk %}">
+      <img src="{{ l.thumbnail }}" alt="" loading="lazy">
+      <div class="lc-body">
+        <div class="lc-top">
+          <span class="pill lvl">{{ l.level }}</span>
+          {% if l.published %}<span class="pill on"><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Published</span>{% else %}<span class="pill off"><i class="ph-fill ph-eye-slash" aria-hidden="true"></i> Draft</span>{% endif %}
+        </div>
+        <b class="lc-title">{{ l.title }}</b>
+        {% if user.is_admin and l.owner and l.owner != user %}<span class="muted small">By {{ l.owner.display_name }}</span>{% endif %}
+        <span class="muted small">{{ l.n_classes }} class{{ l.n_classes|pluralize:"es" }}, {{ l.n_exercises }} exercise{{ l.n_exercises|pluralize }}, {{ l.n_completed }} student{{ l.n_completed|pluralize }} finished it</span>
+      </div>
+    </a>
+  {% empty %}
+    <div class="card empty" style="grid-column:1/-1">
+      {% include "partials/mascot.html" %}
+      <h2>You don't have any lessons yet</h2>
+      <p class="muted">A lesson is a YouTube video with exercises that show up while it plays.</p>
+      <a class="btn lg" href="{% url 'panel:lesson_create' %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> Create my first lesson</a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

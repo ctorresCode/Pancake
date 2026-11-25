@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_title %}{{ lesson.title }}{% endblock %}
+{% block main %}
+<div class="lesson-head">
+  <div>
+    <div class="eyebrow">Level {{ lesson.level }}, lesson {{ lesson.order }}</div>
+    <h1>{{ lesson.title }}</h1>
+    {% if lesson.description %}<p class="muted" style="margin:6px 0 0">{{ lesson.description }}</p>{% endif %}
+  </div>
+  <div class="row-actions">
+  <button class="sound-btn" id="sound-btn" type="button" aria-pressed="false" aria-label="Mute sounds" title="Sounds"><i class="ph-fill ph-speaker-high" aria-hidden="true"></i></button>
+  <div class="settings">
+    <button class="sound-btn" id="settings-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-pop" aria-label="Lesson settings" title="Settings"><i class="ph-fill ph-gear-six" aria-hidden="true"></i></button>
+    <div class="settings-pop" id="settings-pop" role="dialog" aria-label="Practice mode" hidden>
+      <div class="settings-title">Practice mode</div>
+      <button type="button" class="mode-opt" data-mode="synced" aria-pressed="true">
+        <i class="ph-fill ph-play-circle" aria-hidden="true"></i>
+        <span><b>Synced</b><small>Exercises show up while the video keeps playing.</small></span>
+      </button>
+      <button type="button" class="mode-opt" data-mode="pause" aria-pressed="false">
+        <i class="ph-fill ph-pause-circle" aria-hidden="true"></i>
+        <span><b>Pause at exercises</b><small>The video stops until you answer.</small></span>
+      </button>
+      <button type="button" class="mode-opt" data-mode="free" aria-pressed="false">
+        <i class="ph-fill ph-squares-four" aria-hidden="true"></i>
+        <span><b>Free</b><small>All exercises available right away.</small></span>
+      </button>
+    </div>
+  </div>
+  {% if can_edit %}<a class="btn secondary sm" href="{% url 'panel:lesson_edit' lesson.pk %}"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i> Edit</a>{% endif %}
+  </div>
+</div>
+
+<div class="video-zone">
+  <div class="video-frame">
+    <div class="video-ratio"><div id="player"></div></div>
+    <div class="cue-strip" id="cue-strip" aria-label="Exercise moments">
+      <div class="cue-track"></div><div class="cue-fill" id="cue-fill"></div>
+    </div>
+    <div class="video-meta"><span id="time-label">0:00</span></div>
+  </div>
+</div>
+
+<div class="strip" id="strip">
+  <div class="segments" id="segments"></div>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="practice">
+  <button class="icon-btn" id="prev-btn" type="button" aria-label="Previous exercise"><i class="ph-bold ph-caret-left" aria-hidden="true"></i></button>
+  <section class="card ex-card" id="ex-card" aria-live="polite"></section>
+  <button class="icon-btn" id="next-btn" type="button" aria-label="Next exercise"><i class="ph-bold ph-caret-right" aria-hidden="true"></i></button>
+</div>
+
+<div class="teasers" id="teasers"></div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<div class="modal-back" id="done-modal" role="dialog" aria-modal="true" aria-labelledby="done-title">
+  <div class="modal">
+    {% include "partials/mascot.html" %}
+    <h2 id="done-title">Lesson complete!</h2>
+    <p class="muted">You practiced everything in this video. Nice work!</p>
+    <div class="result-boxes">
+      <div class="result-box xp"><div class="t">XP earned</div><div class="v" id="done-xp">0</div></div>
+      <div class="result-box acc"><div class="t">Correct</div><div class="v" id="done-acc">0/0</div></div>
+    </div>
+    {% if next_slug %}<a class="btn block" href="{% url 'lessons:detail' next_slug %}">Next lesson</a>{% endif %}
+    <a class="btn secondary block" href="{% url 'lessons:home' %}">Back to lessons</a>
+    <button class="btn ghost block" type="button" id="done-close">Keep reviewing</button>
+  </div>
+</div>
+<canvas class="confetti" id="confetti"></canvas>
+
+<template id="mascot-tpl">{% include "partials/mascot.html" %}</template>
+{{ payload|json_script:"lesson-data" }}
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  window.PANCAKE = {
+    mascot: "{% static 'img/pancake.svg' %}",
+    checkUrl: "{% url 'lessons:api_check' 0 %}",
+    skipUrl: "{% url 'lessons:api_skip' 0 %}",
+    vocabUrl: "{% url 'lessons:api_vocab' 0 %}",
+    progressUrl: "{% url 'lessons:api_progress' lesson.pk %}",
+    csrf: "{{ csrf_token }}"
+  };
+</script>
+<script src="{% static 'js/lesson.js' %}"></script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+{% endblock %}

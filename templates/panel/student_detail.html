@@ -1,0 +1,24 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}{{ student.display_name }} | Panel{% endblock %}
+{% block panel %}
+<div class="page-head">
+  <div><a href="{% url 'panel:students' %}" class="small"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Students</a><h1>{{ student.display_name }}</h1><p class="muted" style="margin:0">{{ student.email }}. Joined {{ student.date_joined|date:"d M Y" }}</p></div>
+</div>
+{% if classes %}<p class="muted" style="margin:-8px 0 16px">Classes: {% for c in classes %}<a href="{% url 'panel:class_detail' c.pk %}">{{ c.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+<div class="stats">
+  <div class="card stat"><div class="ico c-yellow"><i class="ph-fill ph-star" aria-hidden="true"></i></div><div class="num" style="color:#B98900">{{ student.xp }}</div><div class="lbl">XP</div></div>
+  <div class="card stat"><div class="ico c-orange"><i class="ph-fill ph-fire" aria-hidden="true"></i></div><div class="num" style="color:var(--orange)">{{ student.current_streak }}</div><div class="lbl">Streak (best {{ student.best_streak }})</div></div>
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-calendar-check" aria-hidden="true"></i></div><div class="num" style="font-size:22px">{% if student.last_activity %}{{ student.last_activity|date:"d M" }}{% else %}-{% endif %}</div><div class="lbl">Last practice</div></div>
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-crown-simple" aria-hidden="true"></i></div><div class="num" style="color:var(--purple)">{{ rows|length }}</div><div class="lbl">Lessons started</div></div>
+</div>
+<div class="card">
+  <h2>Lessons</h2>
+  {% for r in rows %}
+    <div class="lesson-row">
+      <div><b>{{ r.lesson.title }}</b><div class="muted small">{% if r.completed %}<i class="ph-fill ph-crown-simple c-yellow" aria-hidden="true"></i> Completed{% else %}In progress{% endif %}</div></div>
+      <div><div class="small muted">Video {{ r.watched }}%</div><div class="meter purple"><span style="width: {{ r.watched }}%"></span></div></div>
+      <div><div class="small muted">{{ r.correct }} right out of {{ r.answered }}/{{ r.lesson.n }}</div><div class="meter green"><span style="width: {% if r.lesson.n %}{% widthratio r.answered r.lesson.n 100 %}{% else %}0{% endif %}%"></span></div></div>
+    </div>
+  {% empty %}<p class="muted">This student hasn't started any lessons yet.</p>{% endfor %}
+</div>
+{% endblock %}

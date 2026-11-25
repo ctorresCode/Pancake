@@ -1,0 +1,6 @@
+# Caddy: HTTPS automático (Let's Encrypt) delante de Django.
+# El dominio sale del .env (PANCAKE_DOMAIN), por ejemplo pancake-english.duckdns.org
+{$PANCAKE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8000
+}

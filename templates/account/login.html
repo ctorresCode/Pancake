@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_title %}Log in{% endblock %}
+{% block main %}
+<div class="auth-wrap" style="padding-top:60px">
+  <div class="card auth-card">
+    {% include "partials/mascot.html" %}
+    <h1>Welcome back!</h1>
+    <p class="sub muted">Log in to keep your streak going <i class="ph-fill ph-fire c-orange" aria-hidden="true"></i></p>
+    {% include "partials/google_button.html" %}
+    <form method="post" action="{% url 'account_login' %}" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-errors">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+      {% include "partials/field.html" with field=form.login label="Email or username" %}
+      {% include "partials/field.html" with field=form.password label="Password" %}
+      {% if form.remember %}{% include "partials/field.html" with field=form.remember %}{% endif %}
+      {{ redirect_field }}
+      <button class="btn block" type="submit">Log in</button>
+    </form>
+    <div class="auth-foot">
+      <a href="{% url 'account_reset_password' %}">Forgot your password?</a><br>
+      <span class="muted">Don't have an account?</span> <a href="{{ signup_url }}">Sign up</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

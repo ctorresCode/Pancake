@@ -1,0 +1,14 @@
+{% extends "panel/base_panel.html" %}
+{% block head_title %}Delete | Panel{% endblock %}
+{% block panel %}
+<div class="card" style="max-width:520px">
+  <h1 style="font-size:26px">Delete {{ kind }}?</h1>
+  <p><b>{{ object }}</b></p>
+  <p class="muted">This can't be undone. Students' progress on it will be deleted too.</p>
+  <form method="post" class="form-actions" style="justify-content:flex-start">
+    {% csrf_token %}
+    <a class="btn secondary" href="javascript:history.back()">Cancel</a>
+    <button class="btn coral" type="submit">Yes, delete</button>
+  </form>
+</div>
+{% endblock %}
