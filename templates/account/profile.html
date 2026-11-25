@@ -4,7 +4,7 @@
 {% block main %}
 <form class="card profile-head {% if form.errors %}editing{% endif %}" id="profile-card" method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
-  <label class="profile-photo" for="id_photo" title="Change photo">
+  <label class="profile-photo" for="id_photo" title="Change photo" tabindex="-1">
     {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="" id="photo-preview">{% else %}<span id="photo-preview" class="photo-initial">{{ user.display_name|first|upper }}</span>{% endif %}
     <span class="photo-overlay"><i class="ph-fill ph-camera" aria-hidden="true"></i><span class="sr-only">Change photo</span></span>
   </label>
@@ -25,6 +25,7 @@
         {% if user.avatar_url %}<label class="check-row small">{{ form.remove_photo }} Remove photo</label>{% endif %}
       </div>
       {{ form.bio.errors }}
+      <p class="muted small photo-hint"><i class="ph-bold ph-camera" aria-hidden="true"></i> Tap your photo to change it.</p>
       <div class="row-actions">
         <button class="btn ghost sm" type="button" id="cancel-edit">Cancel</button>
         <button class="btn sm" type="submit">Save</button>
@@ -62,14 +63,13 @@
     var count = document.getElementById('bio-count');
     var startBio = bio.value;
 
-    // Elegir foto la sube de una vez
+    // La foto nueva solo se muestra; se guarda con Save
+    var original = document.getElementById('photo-preview').outerHTML;
     photo.addEventListener('change', function () {
       var f = photo.files[0]; if (!f) return;
       var prev = document.getElementById('photo-preview'), img = document.createElement('img');
       img.id = 'photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f);
       prev.replaceWith(img);
-      card.classList.add('uploading');
-      card.submit();
     });
 
     document.getElementById('edit-btn').addEventListener('click', function () {
@@ -77,6 +77,8 @@
     });
     document.getElementById('cancel-edit').addEventListener('click', function () {
       bio.value = startBio; upd();
+      photo.value = '';
+      document.getElementById('photo-preview').outerHTML = original;
       card.classList.remove('editing');
     });
 
