@@ -4,12 +4,6 @@
 {% block main %}
 
 <section class="lp-hero">
-  <div class="lp-hero-bg" aria-hidden="true">
-    <video id="lp-video" muted loop playsinline autoplay preload="auto" poster="{% static 'video/pancake-demo.jpg' %}">
-      <source src="{% static 'video/pancake-demo.webm' %}" type="video/webm">
-      <source src="{% static 'video/pancake-demo.mp4' %}" type="video/mp4">
-    </video>
-  </div>
   <div class="lp-copy">
     <h1>Watch the lesson.<br><span>Answer while it plays.</span></h1>
     <p class="lead">Pancake turns your teacher's YouTube classes into practice. Every few minutes a quick question shows up under the video, so you use what you just heard.</p>
@@ -49,6 +43,18 @@
       <div class="lp-fb" id="lp-fb"><span class="fb-ico"><i class="ph-bold ph-check"></i></span><b>Nice!</b><span class="xp-pop">+10 XP</span></div>
       <svg class="lp-cursor" id="lp-cursor" viewBox="0 0 24 24"><path d="M4 2l15 9-6.5 1.5L16 20l-3 1.5-3.6-7.3L4 18z" fill="#2E1065" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
     </div>
+  </div>
+</section>
+
+<section class="lp-watch" data-reveal>
+  <p class="lp-kicker">See it in action</p>
+  <h2 class="lp-h2">This is what a lesson looks like.</h2>
+  <div class="lp-window">
+    <div class="lp-window-bar" aria-hidden="true"><span></span><span></span><span></span><b>pancake</b></div>
+    <video id="lp-video" muted loop playsinline preload="none" poster="{% static 'video/pancake-demo.jpg' %}" aria-label="A student answering exercises in a Pancake lesson">
+      <source src="{% static 'video/pancake-demo.webm' %}" type="video/webm">
+      <source src="{% static 'video/pancake-demo.mp4' %}" type="video/mp4">
+    </video>
   </div>
 </section>
 
@@ -124,12 +130,19 @@
 
 {% block extra_body %}
 <script>
-// Video de fondo: quieto si el usuario pidió reducir movimiento
+// El video de la sección "See it in action" solo se reproduce cuando está en pantalla
 (function () {
   var v = document.getElementById('lp-video');
   if (!v) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); return; }
-  var pr = v.play(); if (pr && pr.catch) pr.catch(function () {});
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+    v.controls = true; return;
+  }
+  new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { v.preload = 'auto'; var pr = v.play(); if (pr && pr.catch) pr.catch(function () { v.controls = true; }); }
+      else v.pause();
+    });
+  }, { threshold: 0.4 }).observe(v);
 })();
 
 (function () {
