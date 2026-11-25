@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,9 +20,10 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "")
 
 # Dominio público (DuckDNS u otro): se acepta automáticamente
 PANCAKE_DOMAIN = os.getenv("PANCAKE_DOMAIN", "").strip()
-if PANCAKE_DOMAIN:
-    ALLOWED_HOSTS.append(PANCAKE_DOMAIN)
-    CSRF_TRUSTED_ORIGINS.append(f"https://{PANCAKE_DOMAIN}")
+# Railway pone su dominio en RAILWAY_PUBLIC_DOMAIN (ej. pancake-production.up.railway.app)
+for domain in {PANCAKE_DOMAIN, os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()} - {""}:
+    ALLOWED_HOSTS.append(domain)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{domain}")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -83,6 +85,9 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
+# En Railway la base de datos llega como DATABASE_URL
+if os.getenv("DATABASE_URL"):
+    DATABASES["default"] = dj_database_url.parse(os.environ["DATABASE_URL"], conn_max_age=600, conn_health_checks=True)
 
 AUTH_USER_MODEL = "accounts.User"
 
