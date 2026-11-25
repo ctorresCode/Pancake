@@ -53,8 +53,7 @@ def admin_required(view):
     return wrapper
 
 
-# --- Qué ve cada profesor (el admin ve todo) ---
-
+# Qué ve cada profesor (el admin ve todo)
 def my_lessons(user):
     return Lesson.objects.all() if user.is_admin else Lesson.objects.filter(owner=user)
 
@@ -123,8 +122,7 @@ def dashboard(request):
     )
 
 
-# --- Lecciones ---
-
+# Lecciones
 @teacher_required
 def lesson_list(request):
     lessons = (
@@ -190,8 +188,7 @@ def lesson_delete(request, pk):
     return render(request, "panel/confirm_delete.html", {"object": lesson, "kind": "this lesson"})
 
 
-# --- Ejercicios ---
-
+# Ejercicios
 def _exercise_form(request, lesson, exercise):
     form = ExerciseForm(request.POST or None, instance=exercise)
     ex_type = request.POST.get("type") if request.method == "POST" else exercise.type
@@ -267,8 +264,7 @@ def exercise_delete(request, pk):
     return render(request, "panel/confirm_delete.html", {"object": exercise, "kind": "this exercise"})
 
 
-# --- Clases ---
-
+# Clases
 @teacher_required
 def class_list(request):
     if request.method == "POST":
@@ -370,8 +366,7 @@ def class_delete(request, pk):
     return render(request, "panel/confirm_delete.html", {"object": classroom, "kind": "this class"})
 
 
-# --- Alumnos ---
-
+# Alumnos
 @teacher_required
 def student_list(request):
     q = request.GET.get("q", "").strip()
@@ -417,8 +412,7 @@ def student_detail(request, pk):
     )
 
 
-# --- Usuarios (solo admin) ---
-
+# Usuarios (solo admin)
 @admin_required
 def user_list(request):
     if request.method == "POST":

@@ -18,7 +18,7 @@ DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
-# Dominio público (DuckDNS u otro): se acepta automáticamente
+# Dominio propio (ej. pancakeenglish.com), se pone en PANCAKE_DOMAIN
 PANCAKE_DOMAIN = os.getenv("PANCAKE_DOMAIN", "").strip()
 # Railway pone su dominio en RAILWAY_PUBLIC_DOMAIN (ej. pancake-production.up.railway.app)
 for domain in {PANCAKE_DOMAIN, os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()} - {""}:
@@ -121,7 +121,7 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 DEFAULT_AUTO_FIELD ="django.db.models.BigAutoField"
 SITE_ID = 1
 
-# --- Auth (django-allauth) ---
+# Login (django-allauth)
 LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "lessons:home"
 ACCOUNT_LOGOUT_REDIRECT_URL = "landing"
@@ -154,7 +154,7 @@ SOCIALACCOUNT_PROVIDERS = {
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 
-# --- HTTPS ---
+# HTTPS
 # En local (DEBUG=True) todo sigue en http://localhost.
 # En el servidor (DEBUG=False) todo va por HTTPS: redirección, cookies seguras y HSTS.
 USE_HTTPS = env_bool("USE_HTTPS", not DEBUG)

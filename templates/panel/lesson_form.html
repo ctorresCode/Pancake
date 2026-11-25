@@ -12,7 +12,6 @@
 </div>
 
 {% if lesson %}
-  {# ---------- Estado: ¿los alumnos la ven? ---------- #}
   <form method="post" action="{% url 'panel:lesson_toggle' lesson.pk %}" class="status-banner {% if lesson.published %}on{% else %}off{% endif %}">
     {% csrf_token %}
     <input type="hidden" name="next" value="{% url 'panel:lesson_edit' lesson.pk %}">
@@ -42,7 +41,6 @@
     </div>
   {% endif %}
 
-  {# ---------- Ejercicios ---------- #}
   <div class="card">
     <div class="page-head" style="margin-bottom:6px">
       <h2 style="margin:0">Exercises in this lesson</h2>
@@ -72,7 +70,6 @@
     <a class="btn block lg" style="margin-top:16px" href="{% url 'panel:exercise_create' lesson.pk %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> Add an exercise</a>
   </div>
 
-  {# ---------- Datos de la lección (escondidos) ---------- #}
   <details class="card more" {% if form.errors %}open{% endif %}>
     <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Change name, video or level</summary>
     <form method="post" novalidate style="margin-top:16px">

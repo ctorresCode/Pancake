@@ -21,7 +21,7 @@ class Command(BaseCommand):
             slug="demo-learn-english-with-music",
             defaults={
                 "title": "Learn English with Music",
-                "description": "Lección de ejemplo: practica vocabulario y gramática con una canción famosa.",
+                "description": "Practice vocabulary and grammar with a song everybody knows.",
                 "level": "A1",
                 "order": 1,
                 "youtube_id": "dQw4w9WgXcQ",

@@ -14,7 +14,6 @@
     <div class="form-errors"><i class="ph-fill ph-warning-circle" aria-hidden="true"></i> Something's missing. Check the messages in red.</div>
   {% endif %}
 
-  {# ================= PASO 1 ================= #}
   <section class="card step">
     <h2><span class="step-num">1</span> What kind of exercise?</h2>
     <div class="type-picker">
@@ -39,7 +38,6 @@
     {{ form.type.errors }}
   </section>
 
-  {# ================= PASO 2 ================= #}
   <section class="card step">
     <h2><span class="step-num">2</span> When does it show up in the video?</h2>
     <p class="muted">Play the video. When you get to the right moment, press the purple button.</p>
@@ -54,7 +52,6 @@
     {{ form.trigger_seconds.errors }}
   </section>
 
-  {# ================= PASO 3 ================= #}
   <section class="card step">
     <h2><span class="step-num">3</span> Write the exercise</h2>
 
@@ -126,7 +123,6 @@
     </div>
   </section>
 
-  {# ================= OPCIONES AVANZADAS ================= #}
   <details class="card more" {% if form.clip_start.errors or form.clip_end.errors or form.xp.errors %}open{% endif %}>
     <summary><i class="ph-bold ph-sliders-horizontal" aria-hidden="true"></i> More options (you don't need to touch these)</summary>
     <div style="margin-top:16px">

@@ -32,7 +32,7 @@
     if (ex.status || ex.trigger <= (DATA.startAt || 0)) state.unlocked.add(i);
   });
 
-  /* ---------------- utilidades ---------------- */
+  // Utilidades
   function h(tag, attrs, children) {
     var el = document.createElement(tag);
     if (attrs) Object.keys(attrs).forEach(function (k) {
@@ -77,7 +77,7 @@
   function isUnlocked(i) { return state.mode === "free" || state.unlocked.has(i); }
   function isDone(i) { return !!DONE[EXS[i].status]; }
 
-  /* ---------------- video ---------------- */
+  // Video
   window.onYouTubeIframeAPIReady = function () {
     state.player = new YT.Player("player", {
       videoId: DATA.videoId,
@@ -170,7 +170,7 @@
     if (pending >= 0 && state.current === null) go(pending, true);
   }
 
-  /* ---------------- modo ---------------- */
+  // Modo
   function setMode(m) {
     state.mode = m; saveMode(m);
     document.querySelectorAll(".mode-opt").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.mode === m); });
@@ -203,7 +203,7 @@
     });
   });
 
-  /* ---------------- navegación ---------------- */
+  // Navegación
   function go(i, animate, fresh) {
     state.current = i; state.answer = null; state.checked = false; state.retry = !!fresh;
     render(animate);
@@ -240,7 +240,7 @@
     for (var j = i + dir; j >= 0 && j < EXS.length; j += dir) if (isUnlocked(j)) return go(j, true);
   }
 
-  /* ---------------- interfaz general ---------------- */
+  // Interfaz general
   function renderChrome() {
     var seg = $("segments"); seg.innerHTML = "";
     EXS.forEach(function (ex, i) {
@@ -295,7 +295,7 @@
 
   function statusText(s) { return s === "correct" ? "correct" : s === "wrong" ? "wrong" : "skipped"; }
 
-  /* ---------------- tarjeta ---------------- */
+  // Tarjeta
   function render(animate) {
     renderChrome();
     card.innerHTML = "";
@@ -479,7 +479,7 @@
     ]));
   }
 
-  /* ---------------- acciones ---------------- */
+  // Acciones
   function actions(ex) {
     var bar = h("div", { class: "ex-actions", id: "ex-actions" }, [
       h("button", { class: "btn ghost", type: "button", text: "Skip", onclick: skip }),
@@ -625,7 +625,7 @@
   }
   $("done-close").addEventListener("click", function () { $("done-modal").classList.remove("open"); state.current = null; render(true); });
 
-  /* ---------------- teclado ---------------- */
+  // Teclado
   document.addEventListener("keydown", function (e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.ctrlKey || e.metaKey || e.altKey) return;
     if ($("done-modal").classList.contains("open")) return;
@@ -637,7 +637,7 @@
     }
   });
 
-  /* ---------------- confeti ---------------- */
+  // Confeti
   function confetti() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     var cv = $("confetti"), ctx = cv.getContext("2d");
@@ -660,7 +660,7 @@
     })(start);
   }
 
-  /* ---------------- sonido on/off ---------------- */
+  // Sonido on/off
   var sb = $("sound-btn");
   function paintSound() {
     var m = FX.muted();
@@ -670,7 +670,7 @@
   }
   if (sb) { paintSound(); sb.addEventListener("click", function () { FX.setMuted(!FX.muted()); paintSound(); if (!FX.muted()) FX.play("tap"); }); }
 
-  /* ---------------- inicio ---------------- */
+  // Inicio
   setMode(state.mode);
   if (state.current === null) render();
 })();

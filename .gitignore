@@ -4,5 +4,4 @@ __pycache__/
 .env
 staticfiles/
 tools/
-deploy/duckdns.log
 graphify-out/

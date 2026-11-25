@@ -31,7 +31,7 @@ class PancakeTests(TestCase):
     def ex(self, type_):
         return self.lesson.exercises.get(type=type_)
 
-    # ---------- páginas ----------
+    # Páginas
     def test_public_pages(self):
         for name in ("landing", "account_login", "account_signup"):
             self.assertEqual(self.client.get(reverse(name)).status_code, 200, name)
@@ -78,7 +78,7 @@ class PancakeTests(TestCase):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get(self.lesson.get_absolute_url()).status_code, 404)
 
-    # ---------- corrección ----------
+    # Corrección
     def test_check_all_types_and_xp(self):
         self.client.force_login(self.student)
         mc = self.ex(Exercise.MULTIPLE_CHOICE)
@@ -159,7 +159,7 @@ class PancakeTests(TestCase):
         p = LessonProgress.objects.get(user=self.student, lesson=self.lesson)
         self.assertEqual((p.watched_percent, p.last_position), (40, 30))
 
-    # ---------- panel: crear lección y ejercicios ----------
+    # Panel: crear lección y ejercicios
     def test_teacher_creates_lesson_and_exercises(self):
         self.client.force_login(self.teacher)
         r = self.client.post(reverse("panel:lesson_create"), {
@@ -228,7 +228,7 @@ class PancakeTests(TestCase):
         self.assertNotIn("correctAnswer", other)
 
 
-    # ---------- clases ----------
+    # Clases
     def test_student_only_sees_assigned_lessons(self):
         other = Lesson.objects.create(title="Not assigned", level="A1", youtube_id="abcdefghijk", published=True)
         self.client.force_login(self.student)
