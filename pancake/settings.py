@@ -62,6 +62,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "accounts.middleware.ChooseRoleMiddleware",
+    "accounts.middleware.RefreshSessionMiddleware",
 ]
 
 ROOT_URLCONF = "pancake.urls"
@@ -123,6 +124,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 días desde la última visita
 CSRF_COOKIE_HTTPONLY = False  # el JavaScript de la lección lee el token desde la página, no de la cookie
 X_FRAME_OPTIONS = "DENY"
 

@@ -1,5 +1,5 @@
 ﻿import json
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -366,3 +366,10 @@ class PancakeTests(TestCase):
         r = self.client.post(reverse("lessons:join"), {"code": self.classroom.code})
         self.assertContains(r, "Too many tries")
         cache.clear()
+
+    def test_session_is_renewed_on_visits(self):
+        self.client.force_login(self.student)
+        self.client.get(reverse("lessons:home"))
+        session = self.client.session
+        self.assertEqual(session.get("refreshed"), date.today().isoformat())
+        self.assertGreater(session.get_expiry_age(), 60 * 60 * 24 * 29)

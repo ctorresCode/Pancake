@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -36,3 +38,20 @@ class ChooseRoleMiddleware:
         ):
             return HttpResponseRedirect(reverse("choose_role"))
         return self.get_response(request)
+
+
+class RefreshSessionMiddleware:
+    """La sesión dura SESSION_COOKIE_AGE desde la última visita, no desde el login.
+    Se renueva una vez al día para no escribir en la base de datos en cada página."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            today = date.today().isoformat()
+            if request.session.get("refreshed") != today:
+                request.session["refreshed"] = today  # marcarla como modificada renueva cookie y vencimiento
+        return response
