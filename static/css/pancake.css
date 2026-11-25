@@ -1099,4 +1099,4 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .qa-ico.teal { box-shadow: 0 5px 0 #0F8A7D; }
 .qa-ico.yellow { box-shadow: 0 5px 0 var(--yellow-dark); }
 .fb-ico { line-height: 1; }
-.avatar:not(:has(img)) { line-height: 1; padding-top: 2px; }
+.avatar:not(:has(img)) { line-height: 1; padding-top: 1px; }
