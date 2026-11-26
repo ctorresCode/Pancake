@@ -436,3 +436,21 @@ class PancakeTests(TestCase):
         with CaptureQueriesContext(connection) as after:
             self.client.get(reverse("lessons:home"))
         self.assertEqual(len(after), len(before))
+
+    def test_teacher_sees_teaching_progress_and_own_menu(self):
+        teacher = make_user("t5", "t5@example.com", "pass12345!", role="teacher")
+        room = Classroom.objects.create(name="Evening", teacher=teacher)
+        lesson = Lesson.objects.create(title="Mine", level="A1", youtube_id="abcdefghijk", published=True, owner=teacher)
+        Assignment.objects.create(classroom=room, lesson=lesson)
+        Membership.objects.create(classroom=room, user=self.student)
+        LessonProgress.objects.create(user=self.student, lesson=lesson, completed_at=timezone.now())
+        self.client.force_login(teacher)
+        r = self.client.get(reverse("lessons:progress"))
+        self.assertTemplateUsed(r, "lessons/teacher_progress.html")
+        self.assertContains(r, "Evening")
+        self.assertContains(r, "100% of assigned lessons finished")
+        self.assertNotContains(r, "My vocabulary")
+        self.client.force_login(self.student)
+        r = self.client.get(reverse("lessons:progress"))
+        self.assertTemplateUsed(r, "lessons/progress.html")
+        self.assertContains(r, "My vocabulary")

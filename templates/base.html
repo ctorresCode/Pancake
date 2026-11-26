@@ -22,10 +22,16 @@
       {% if user.is_authenticated %}
         {% with url_name=request.resolver_match.url_name ns=request.resolver_match.namespace %}
         <nav class="nav" id="main-nav" aria-label="Main">
-          <a href="{% url 'lessons:home' %}" class="{% if ns == 'lessons' and url_name == 'home' or url_name == 'detail' %}active{% endif %}">Lessons</a>
-          <a href="{% url 'lessons:vocabulary' %}" class="{% if url_name == 'vocabulary' %}active{% endif %}">My vocabulary</a>
-          <a href="{% url 'lessons:progress' %}" class="{% if url_name == 'progress' %}active{% endif %}">My progress</a>
-          {% if user.is_teacher %}<a href="{% url 'panel:dashboard' %}" class="{% if ns == 'panel' %}active{% endif %}">Teacher panel</a>{% endif %}
+          {% if user.is_teacher %}
+            <a href="{% url 'panel:classes' %}" class="{% if ns == 'panel' and 'class' in url_name %}active{% endif %}">My classes</a>
+            <a href="{% url 'panel:lessons' %}" class="{% if ns == 'panel' and 'lesson' in url_name or ns == 'panel' and 'exercise' in url_name %}active{% endif %}">Lessons</a>
+            <a href="{% url 'lessons:progress' %}" class="{% if url_name == 'progress' %}active{% endif %}">My progress</a>
+            <a href="{% url 'panel:dashboard' %}" class="{% if ns == 'panel' and url_name == 'dashboard' or ns == 'panel' and 'student' in url_name or url_name == 'users' %}active{% endif %}">Teacher panel</a>
+          {% else %}
+            <a href="{% url 'lessons:home' %}" class="{% if ns == 'lessons' and url_name == 'home' or url_name == 'detail' %}active{% endif %}">Lessons</a>
+            <a href="{% url 'lessons:vocabulary' %}" class="{% if url_name == 'vocabulary' %}active{% endif %}">My vocabulary</a>
+            <a href="{% url 'lessons:progress' %}" class="{% if url_name == 'progress' %}active{% endif %}">My progress</a>
+          {% endif %}
         </nav>
         {% endwith %}
         <div class="top-right">

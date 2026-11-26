@@ -306,6 +306,8 @@ def api_progress(request, pk):
 @login_required
 def my_progress(request):
     user = request.user
+    if user.is_teacher:
+        return teacher_progress(request)
     results = ExerciseResult.objects.filter(user=user)
     stats = results.aggregate(
         correct=Count("id", filter=Q(status=ExerciseResult.CORRECT)),
@@ -376,3 +378,68 @@ def vocabulary(request):
 def vocab_remove(request, pk):
     VocabItem.objects.filter(user=request.user, pk=pk).delete()
     return redirect("lessons:vocabulary")
+
+
+def teacher_progress(request):
+    """My progress del profe: lo que ha creado y cómo van sus alumnos."""
+    user = request.user
+    today = timezone.localdate()
+    classes = list(
+        Classroom.objects.filter(teacher=user)
+        .annotate(n_students=Count("memberships", distinct=True), n_lessons=Count("assignments", distinct=True))
+        .order_by("name")
+    )
+    lessons = Lesson.objects.filter(owner=user)
+    student_ids = set(Membership.objects.filter(classroom__in=classes).values_list("user_id", flat=True))
+
+    # Avance por clase: lecciones asignadas terminadas / (alumnos x lecciones)
+    done = set(
+        LessonProgress.objects.filter(user_id__in=student_ids, completed_at__isnull=False).values_list("user_id", "lesson_id")
+    )
+    members = {}
+    for cid, uid in Membership.objects.filter(classroom__in=classes).values_list("classroom_id", "user_id"):
+        members.setdefault(cid, []).append(uid)
+    assigned = {}
+    for cid, lid in Assignment.objects.filter(classroom__in=classes).values_list("classroom_id", "lesson_id"):
+        assigned.setdefault(cid, []).append(lid)
+    for c in classes:
+        total = len(members.get(c.pk, [])) * len(assigned.get(c.pk, []))
+        finished = sum(1 for u in members.get(c.pk, []) for l in assigned.get(c.pk, []) if (u, l) in done)
+        c.percent = round(finished * 100 / total) if total else 0
+
+    answers = ExerciseResult.objects.filter(user_id__in=student_ids, exercise__lesson__in=lessons).exclude(
+        status=ExerciseResult.SKIPPED
+    )
+    stats = answers.aggregate(total=Count("id"), correct=Count("id", filter=Q(status=ExerciseResult.CORRECT)))
+    per_day = dict(
+        answers.filter(updated_at__date__gte=today - timedelta(days=6))
+        .annotate(d=TruncDate("updated_at"))
+        .values("d")
+        .annotate(n=Count("id"))
+        .values_list("d", "n")
+    )
+    week = [{"day": d, "xp": per_day.get(d) or 0} for d in (today - timedelta(days=o) for o in range(6, -1, -1))]
+    top = max([d["xp"] for d in week] + [1])
+    for d in week:
+        d["height"] = round(d["xp"] * 100 / top)
+
+    return render(
+        request,
+        "lessons/teacher_progress.html",
+        {
+            "classes": classes,
+            "n_students": len(student_ids),
+            "n_lessons": lessons.count(),
+            "n_published": lessons.filter(published=True).count(),
+            "n_exercises": Exercise.objects.filter(lesson__in=lessons).count(),
+            "n_completed": LessonProgress.objects.filter(
+                user_id__in=student_ids, lesson__in=lessons, completed_at__isnull=False
+            ).count(),
+            "answers": stats["total"],
+            "accuracy": round(stats["correct"] * 100 / stats["total"]) if stats["total"] else 0,
+            "active_week": ExerciseResult.objects.filter(
+                user_id__in=student_ids, updated_at__date__gte=today - timedelta(days=6)
+            ).values("user_id").distinct().count(),
+            "week": week,
+        },
+    )

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block head_title %}My progress{% endblock %}
+{% block main %}
+<div class="page-head"><div><h1>My progress</h1><p class="muted" style="margin:4px 0 0">What you've built and how your students are doing.</p></div></div>
+
+<div class="stats">
+  <div class="card stat"><div class="ico c-purple"><i class="ph-fill ph-users-three" aria-hidden="true"></i></div><div class="num" style="color:var(--purple)">{{ classes|length }}</div><div class="lbl">Classes</div></div>
+  <div class="card stat"><div class="ico c-orange"><i class="ph-fill ph-graduation-cap" aria-hidden="true"></i></div><div class="num" style="color:var(--orange)">{{ n_students }}</div><div class="lbl">Students ({{ active_week }} active this week)</div></div>
+  <div class="card stat"><div class="ico c-yellow"><i class="ph-fill ph-film-strip" aria-hidden="true"></i></div><div class="num" style="color:#B98900">{{ n_lessons }}</div><div class="lbl">Lessons ({{ n_published }} published)</div></div>
+  <div class="card stat"><div class="ico c-green"><i class="ph-fill ph-target" aria-hidden="true"></i></div><div class="num" style="color:var(--green-dark)">{{ accuracy }}%</div><div class="lbl">Correct answers</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Answers in the last 7 days</h2>
+    <div class="week">
+      {% for d in week %}
+        <div class="bar {% if forloop.last %}today{% endif %}"><b>{{ d.xp }}</b><span style="height: {{ d.height }}%"></span>{{ d.day|date:"D" }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>In numbers</h2>
+    <ul class="teach-numbers">
+      <li><span>Exercises you made</span><b>{{ n_exercises }}</b></li>
+      <li><span>Answers from your students</span><b>{{ answers }}</b></li>
+      <li><span>Lessons finished by students</span><b>{{ n_completed }}</b></li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <div class="page-head" style="margin-bottom:8px"><h2 style="margin:0">My classes</h2><a class="btn sm" href="{% url 'panel:classes' %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> New class</a></div>
+  {% for c in classes %}
+    <a class="lesson-row teach-row" href="{% url 'panel:class_detail' c.pk %}">
+      <div><b>{{ c.name }}</b><div class="muted small">Code {{ c.code_display }}. {{ c.n_students }} student{{ c.n_students|pluralize }}, {{ c.n_lessons }} lesson{{ c.n_lessons|pluralize }}</div></div>
+      <div><div class="small muted">{{ c.percent }}% of assigned lessons finished</div><div class="meter green"><span style="width: {{ c.percent }}%"></span></div></div>
+    </a>
+  {% empty %}
+    <p class="muted">You don't have classes yet. <a href="{% url 'panel:classes' %}">Create your first class</a>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

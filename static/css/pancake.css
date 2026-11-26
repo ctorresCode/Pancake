@@ -1116,3 +1116,10 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
   .lp-window { border-radius: 16px; border-bottom-width: 4px; }
   .lp-window-bar { padding: 9px 12px; }
 }
+.teach-numbers { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.teach-numbers li { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid var(--lilac); }
+.teach-numbers li:last-child { border-bottom: 0; }
+.teach-numbers b { font-size: 22px; color: var(--purple); }
+.teach-row { grid-template-columns: 1fr 260px; color: var(--ink); text-decoration: none; }
+.teach-row:hover { text-decoration: none; background: var(--ice); }
+.grid-2 + .card { margin-top: 18px; }
