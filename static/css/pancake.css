@@ -115,7 +115,6 @@ main { padding: 28px 0 80px; }
   vertical-align: 0;
 }
 .dropdown i { width: 22px; color: var(--purple); font-size: 18px; }
-.panel-nav i { font-size: 20px; }
 .toast { display: flex; align-items: center; gap: 8px; }
 .toast i { font-size: 20px; color: var(--yellow); }
 .options.tf .option i { font-size: 28px; }
@@ -404,7 +403,7 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--purple); v
 .lesson-row { display: grid; grid-template-columns: 1fr 160px 140px; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 2px solid var(--lilac); }
 .lesson-row:last-child { border-bottom: 0; }
 .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-.vcard { perspective: 900px; height: 190px; cursor: pointer; }
+.vcard { perspective: 900px; height: 190px; cursor: pointer; border-radius: 22px; }
 .vcard-inner { position: relative; width: 100%; height: 100%; transition: transform .5s; transform-style: preserve-3d; }
 .vcard.flipped .vcard-inner { transform: rotateY(180deg); }
 .vface {
@@ -416,14 +415,6 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--purple); v
 .vface.back small { color: var(--lilac); }
 
 /* Panel del profe */
-.panel-layout { display: grid; grid-template-columns: 220px 1fr; gap: 26px; align-items: start; }
-.panel-nav { position: sticky; top: 90px; display: grid; gap: 6px; }
-.panel-nav a {
-  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; color: var(--ink); font-weight: 900; border: 2px solid transparent;
-}
-.panel-nav a:hover { background: #fff; text-decoration: none; }
-.panel-nav a.active { background: var(--lilac); color: var(--purple); border-color: var(--lavender); }
-.panel-nav .tag { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 14px 6px; }
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-head h1 { margin: 0; font-size: 32px; }
 .table-wrap { overflow-x: auto; }
@@ -468,10 +459,6 @@ table.tbl { width: 100%; border-collapse: collapse; }
 
 /* Pantallas pequeñas */
 @media (max-width: 960px) {
-  .panel-layout { grid-template-columns: 1fr; }
-  .panel-nav { position: static; display: flex; overflow-x: auto; gap: 6px; }
-  .panel-nav .tag { display: none; }
-  .panel-nav a { white-space: nowrap; }
   .stats { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -794,9 +781,10 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .join-inline { display: flex; gap: 10px; max-width: 360px; margin: 14px auto 0; }
 .join-inline input { text-transform: uppercase; letter-spacing: .12em; font-weight: 900; text-align: center; }
 .code-input { text-transform: uppercase; letter-spacing: .14em; font-weight: 900; font-size: 22px !important; text-align: center; }
+.code-input::placeholder, .join-inline input::placeholder { text-transform: none; letter-spacing: .04em; font-weight: 700; }
 .code-big { font-size: 34px; font-weight: 900; letter-spacing: .12em; color: var(--purple); }
 .new-class { margin-bottom: 18px; }
-.class-card { display: grid; gap: 8px; color: var(--ink); text-decoration: none; justify-items: start; }
+.class-card { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; color: var(--ink); text-decoration: none; justify-items: start; }
 .class-card:hover { text-decoration: none; translate: 0 -4px; box-shadow: var(--shadow-hover); }
 .join-card { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; border-color: var(--lavender); }
 .join-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -983,7 +971,6 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
   .nav a { padding: 12px 14px; }
   .menu-toggle { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; border: 2px solid var(--lilac); background: #fff; font-size: 20px; cursor: pointer; }
 }
-.panel-layout > div, .form-layout > *, .home-grid > * { min-width: 0; }
 .search-form { min-width: 260px; }
 .lesson-head { flex-wrap: wrap; }
 .back-link { padding: 8px 0; }
@@ -1093,7 +1080,7 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 /* Efecto 3D con sombra en vez de borde, para que el contenido quede centrado */
 .avatar { border-bottom: 0; box-shadow: 0 4px 0 var(--purple-dark); }
 .avatar.sm { box-shadow: 0 3px 0 var(--purple-dark); }
-.step-num { border-bottom: 0; box-shadow: 0 3px 0 var(--purple-dark); }
+.step-num { border-bottom: 0; box-shadow: inset 0 -3px 0 var(--purple-dark); line-height: 1; }
 .lr-badge { border-bottom: 0; box-shadow: 0 3px 0 var(--yellow-dark); }
 .qa-ico { border-bottom: 0; box-shadow: 0 5px 0 var(--purple-dark); margin-bottom: 9px; }
 .qa-ico.teal { box-shadow: 0 5px 0 #0F8A7D; }
@@ -1123,3 +1110,91 @@ a.ex-item:hover { border-color: var(--lavender); text-decoration: none; }
 .teach-row { grid-template-columns: 1fr 260px; color: var(--ink); text-decoration: none; }
 .teach-row:hover { text-decoration: none; background: var(--ice); }
 .grid-2 + .card { margin-top: 18px; }
+.quick-actions { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.qa-ico.coral { background: var(--coral); box-shadow: 0 5px 0 var(--coral-dark); }
+
+/* Menú del profe en celular: pestañas fijas abajo */
+.tabbar { display: none; }
+@media (max-width: 720px) {
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    background: rgba(255, 255, 255, .97); backdrop-filter: blur(10px); border-top: 2px solid var(--lilac);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  }
+  .tabbar a { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 14px; color: var(--muted); font-size: 12px; font-weight: 900; text-decoration: none; }
+  .tabbar a i { font-size: 24px; }
+  .tabbar a.active { color: var(--purple); background: var(--lilac); }
+  body:has(.tabbar) main { padding-bottom: 96px; }
+  /* con las pestañas no hace falta el ☰, y la racha y el XP son del alumno */
+  body:has(.tabbar) .menu-toggle { display: none; }
+
+  /* My classes y My lessons */
+  .new-class .time-row { flex-direction: column; }
+  .new-class .time-row .btn { width: 100%; }
+  .page-head .btn { white-space: nowrap; }
+  .empty .btn { white-space: normal; line-height: 1.2; padding: 12px 20px; }
+  /* My progress del profe */
+  .teach-row { grid-template-columns: 1fr; gap: 8px; }
+  /* Teacher panel: accesos en filas compactas */
+  .quick-actions { gap: 10px; }
+  .qa { grid-template-columns: 48px 1fr; grid-template-rows: auto auto; column-gap: 14px; row-gap: 0; align-items: center; padding: 14px 16px; }
+  .qa .qa-ico { grid-row: 1 / 3; width: 48px; height: 48px; font-size: 26px; margin: 0; }
+  .qa b { font-size: 16px; }
+}
+@media (max-width: 720px) {
+  body:has(.tabbar) .brand-text { display: inline; }
+  .empty .btn { font-size: 15px; letter-spacing: .03em; white-space: nowrap; padding: 0 18px; }
+}
+
+/* Crear lección: formulario + vista previa y guía al lado */
+.field label.step-label { display: flex; }
+.create-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
+.create-layout > .card { margin: 0; }
+.create-side { display: grid; gap: 18px; position: sticky; top: 90px; }
+.create-side .card { margin: 0; }
+.big-preview { aspect-ratio: 16 / 9; border-radius: 16px; border: 3px dashed var(--lavender); background: var(--ice); display: grid; place-items: center; align-content: center; gap: 8px; text-align: center; padding: 16px; color: var(--muted); font-weight: 700; overflow: hidden; }
+.big-preview i { font-size: 42px; color: var(--lavender); }
+.big-preview.has-video { border: 0; padding: 0; }
+.big-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.next-steps { margin: 0; padding-left: 22px; display: grid; gap: 12px; color: var(--muted); }
+.next-steps b { color: var(--ink); }
+@media (max-width: 960px) {
+  .create-layout { grid-template-columns: 1fr; }
+  .create-side { position: static; }
+  .create-side .card:first-child { display: none; }
+}
+
+/* Foto de la lección */
+.lesson-photo-preview:not(:empty) { margin-top: 12px; }
+.lesson-photo-preview img { display: block; max-width: 100%; max-height: 260px; border-radius: 14px; border: 2px solid var(--lilac); }
+.lesson-photo { width: fit-content; max-width: min(820px, 100%); margin: 0 auto 6px; background: #fff; border-radius: 24px; border: 2px solid var(--lilac); border-bottom-width: 6px; box-shadow: var(--shadow); overflow: hidden; }
+.lesson-photo img { display: block; max-width: 100%; height: auto; max-height: min(42vh, 380px); }
+@media (max-width: 720px) { .lesson-photo { border-radius: 18px; } .lesson-photo img { max-height: 320px; } }
+.field label.btn { display: inline-flex; margin-bottom: 0; }
+
+/* Imagen de la clase */
+.class-cover { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 14px; background: var(--lilac); }
+.class-cover.no-pic { display: grid; place-items: center; color: var(--purple); font-size: 44px; }
+.class-title { justify-content: flex-start; }
+.class-pic { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; flex: none; background: var(--lilac); }
+.class-pic.sm { width: 52px; height: 52px; border-radius: 14px; }
+.class-pic.xs { width: 32px; height: 32px; border-radius: 10px; }
+.class-name { display: flex; align-items: center; gap: 12px; }
+.class-pic-preview img { display: block; margin-top: 12px; width: 160px; aspect-ratio: 16/9; object-fit: cover; border-radius: 14px; }
+.sep { border: 0; border-top: 2px solid var(--line); margin: 20px 0 16px; }
+@media (max-width: 640px) {
+  .class-pic { width: 56px; height: 56px; border-radius: 14px; }
+  /* En el celular cada clase es una fila: foto pequeña y datos al lado */
+  .class-card { grid-template-columns: 76px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; align-items: center; padding: 14px; }
+  .class-card > :not(.class-cover) { grid-column: 2; }
+  .class-card > .class-cover, .class-card > .qa-ico { grid-column: 1; grid-row: 1 / span 4; width: 76px; aspect-ratio: 1; align-self: start; }
+  .class-cover.no-pic { font-size: 32px; }
+  .class-card .lc-title { overflow-wrap: anywhere; }
+}
+.class-chips li:has(img) { grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; }
+.class-chips li img { grid-row: span 2; }
+.error-page { max-width: 520px; margin: 40px auto; }
+.error-page h1 { font-size: 28px; margin: 12px 0 6px; }
+.error-page .btn { margin-top: 10px; }
+.time-warn { margin: 10px 0 0; padding: 10px 14px; border-radius: 12px; background: #FEF3C7; color: #92400E; font-weight: 700; font-size: 14px; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }

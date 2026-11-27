@@ -9,6 +9,7 @@
   <a class="card qa" href="{% url 'panel:lesson_create' %}"><span class="qa-ico"><i class="ph-fill ph-plus-circle" aria-hidden="true"></i></span><b>Create a lesson</b><span class="muted small">Paste a YouTube video and add exercises.</span></a>
   <a class="card qa" href="{% url 'panel:classes' %}"><span class="qa-ico teal"><i class="ph-fill ph-users-three" aria-hidden="true"></i></span><b>My classes</b><span class="muted small">Share the class code and assign lessons.</span></a>
   <a class="card qa" href="{% url 'panel:students' %}"><span class="qa-ico yellow"><i class="ph-fill ph-graduation-cap" aria-hidden="true"></i></span><b>See my students</b><span class="muted small">See how they're doing and how much they practice.</span></a>
+  {% if user.is_admin %}<a class="card qa" href="{% url 'panel:users' %}"><span class="qa-ico coral"><i class="ph-fill ph-user-gear" aria-hidden="true"></i></span><b>Users</b><span class="muted small">Change someone between student and teacher.</span></a>{% endif %}
 </div>
 
 <div class="stats">

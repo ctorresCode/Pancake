@@ -48,7 +48,7 @@
 <section class="card">
   <h2>My classes</h2>
   <ul class="class-chips">
-    {% for c in classes %}<li><b>{{ c.name }}</b><span class="muted small">{{ c.teacher.display_name }}</span></li>{% endfor %}
+    {% for c in classes %}<li>{% if c.image_url %}<img class="class-pic xs" src="{{ c.image_url }}" alt="">{% endif %}<b>{{ c.name }}</b><span class="muted small">Teacher: {{ c.teacher.display_name }}</span></li>{% endfor %}
   </ul>
 </section>
 {% endif %}

@@ -8,6 +8,7 @@
     <p class="sub muted">Tell us how you'll use Pancake.</p>
     <form method="post" novalidate>
       {% csrf_token %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
       {% include "partials/role_picker.html" with field=form.role %}
       <button class="btn block" type="submit">Continue</button>
     </form>

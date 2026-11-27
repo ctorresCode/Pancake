@@ -10,6 +10,7 @@
   </div>
   <div class="row-actions">
   <button class="sound-btn" id="sound-btn" type="button" aria-pressed="false" aria-label="Mute sounds" title="Sounds"><i class="ph-fill ph-speaker-high" aria-hidden="true"></i></button>
+  {% if lesson.youtube_id %}
   <div class="settings">
     <button class="sound-btn" id="settings-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-pop" aria-label="Lesson settings" title="Settings"><i class="ph-fill ph-gear-six" aria-hidden="true"></i></button>
     <div class="settings-pop" id="settings-pop" role="dialog" aria-label="Practice mode" hidden>
@@ -28,10 +29,15 @@
       </button>
     </div>
   </div>
+  {% endif %}
   {% if can_edit %}<a class="btn secondary sm" href="{% url 'panel:lesson_edit' lesson.pk %}"><i class="ph-bold ph-pencil-simple" aria-hidden="true"></i> Edit</a>{% endif %}
   </div>
 </div>
 
+{% if not lesson.youtube_id and lesson.image_url %}
+<figure class="lesson-photo"><img src="{{ lesson.image_url }}" alt="Picture for this lesson"></figure>
+{% endif %}
+{% if lesson.youtube_id %}
 <div class="video-zone">
   <div class="video-frame">
     <div class="video-ratio"><div id="player"></div></div>
@@ -41,6 +47,7 @@
     <div class="video-meta"><span id="time-label">0:00</span></div>
   </div>
 </div>
+{% endif %}
 
 <div class="strip" id="strip">
   <div class="segments" id="segments"></div>
@@ -61,7 +68,7 @@
   <div class="modal">
     {% include "partials/mascot.html" %}
     <h2 id="done-title">Lesson complete!</h2>
-    <p class="muted">You practiced everything in this video. Nice work!</p>
+    <p class="muted">You practiced everything in this lesson. Nice work!</p>
     <div class="result-boxes">
       <div class="result-box xp"><div class="t">XP earned</div><div class="v" id="done-xp">0</div></div>
       <div class="result-box acc"><div class="t">Correct</div><div class="v" id="done-acc">0/0</div></div>
@@ -89,5 +96,5 @@
   };
 </script>
 <script src="{% static 'js/lesson.js' %}"></script>
-<script src="https://www.youtube.com/iframe_api" async></script>
+{% if lesson.youtube_id %}<script src="https://www.youtube.com/iframe_api" async></script>{% endif %}
 {% endblock %}

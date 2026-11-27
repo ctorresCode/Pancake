@@ -38,6 +38,7 @@
     {{ form.type.errors }}
   </section>
 
+  {% if lesson.youtube_id %}
   <section class="card step">
     <h2><span class="step-num">2</span> When does it show up in the video?</h2>
     <p class="muted">Play the video. When you get to the right moment, press the purple button.</p>
@@ -49,11 +50,16 @@
       <label for="{{ form.trigger_seconds.id_for_label }}">The exercise will show up at:</label>
       {{ form.trigger_seconds }}
     </div>
+    <p class="time-warn" id="time-warn" hidden></p>
     {{ form.trigger_seconds.errors }}
   </section>
+  {% else %}
+  {# Sin video: el orden lo da la creación; se conserva el valor que ya tenía #}
+  <input type="hidden" name="trigger_seconds" value="{{ form.instance.trigger_seconds }}">
+  {% endif %}
 
   <section class="card step">
-    <h2><span class="step-num">3</span> Write the exercise</h2>
+    <h2><span class="step-num">{% if lesson.youtube_id %}3{% else %}2{% endif %}</span> Write the exercise</h2>
 
     {# Pregunta (elegir respuesta / escuchar y elegir) #}
     <div class="field" data-show="multiple_choice listening">
@@ -126,7 +132,7 @@
   <details class="card more" {% if form.clip_start.errors or form.clip_end.errors or form.xp.errors %}open{% endif %}>
     <summary><i class="ph-bold ph-sliders-horizontal" aria-hidden="true"></i> More options (you don't need to touch these)</summary>
     <div style="margin-top:16px">
-      <label class="check-row" style="margin-bottom:16px">{{ form.pause_video }} Pause the video when this exercise shows up</label>
+      {% if lesson.youtube_id %}<label class="check-row" style="margin-bottom:16px">{{ form.pause_video }} Pause the video when this exercise shows up</label>{% endif %}
 
       <div class="field" data-show="fill_blank true_false order_words listen_type">
         <label for="id_prompt_alt">Custom instruction</label>
@@ -212,6 +218,7 @@
     s.focus(); s.setSelectionRange(a + 3, a + 3);
   });
 
+  {% if lesson.youtube_id %}
   // Video para elegir el momento
   var player, ready = false;
   function fmt(s) { s = Math.floor(s || 0); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -219,21 +226,39 @@
     player = new YT.Player('player', {
       videoId: '{{ lesson.youtube_id|escapejs }}',
       playerVars: { rel: 0, modestbranding: 1, playsinline: 1, hl: 'en', start: {{ form.instance.trigger_seconds|default:0 }} },
-      events: { onReady: function () { ready = true; } }
+      events: { onReady: function () { ready = true; checkEnd(); } }
     });
   };
+  // Aviso si el momento elegido pasa el final del video
+  var timeInput = document.getElementById('{{ form.trigger_seconds.id_for_label }}');
+  function toSeconds(v) {
+    v = (v || '').trim();
+    if (/^\d+$/.test(v)) return +v;
+    if (!/^\d+(:\d{1,2}){1,2}$/.test(v)) return null;
+    return v.split(':').reduce(function (t, p) { return t * 60 + (+p); }, 0);
+  }
+  function checkEnd() {
+    var warn = document.getElementById('time-warn'), d = ready ? player.getDuration() : 0, t = toSeconds(timeInput.value);
+    if (d && t !== null && t >= d) {
+      warn.textContent = 'The video is only ' + fmt(d) + ' long. Students will get this exercise when the video ends.';
+      warn.hidden = false;
+    } else warn.hidden = true;
+  }
+  timeInput.addEventListener('input', checkEnd);
   setInterval(function () { if (ready) document.getElementById('now').textContent = fmt(player.getCurrentTime()); }, 300);
   function capture(id) {
     if (!ready) return;
     var input = document.getElementById(id);
     input.value = fmt(player.getCurrentTime());
     input.classList.remove('flash'); void input.offsetWidth; input.classList.add('flash');
+    checkEnd();
   }
   document.getElementById('capture-btn').addEventListener('click', function () { capture('{{ form.trigger_seconds.id_for_label }}'); });
   document.querySelectorAll('[data-capture]').forEach(function (b) {
     b.addEventListener('click', function () { capture(b.getAttribute('data-capture')); });
   });
+  {% endif %}
 })();
 </script>
-<script src="https://www.youtube.com/iframe_api" async></script>
+{% if lesson.youtube_id %}<script src="https://www.youtube.com/iframe_api" async></script>{% endif %}
 {% endblock %}

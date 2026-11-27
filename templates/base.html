@@ -16,7 +16,7 @@
 <body class="{% block body_class %}{% endblock %}">
   <header class="topbar">
     <div class="container">
-      <a class="brand" href="{% if user.is_authenticated %}{% url 'lessons:home' %}{% else %}{% url 'landing' %}{% endif %}">
+      <a class="brand" href="{% if user.is_teacher %}{% url 'panel:classes' %}{% elif user.is_authenticated %}{% url 'lessons:home' %}{% else %}{% url 'landing' %}{% endif %}">
         <img src="{% static 'img/pancake.svg' %}" alt="" width="40" height="40"><span class="brand-text">Pancake</span>
       </a>
       {% if user.is_authenticated %}
@@ -35,12 +35,14 @@
         </nav>
         {% endwith %}
         <div class="top-right">
+          {% if not user.is_teacher %}
           <span class="chip streak {% if not user.current_streak %}off{% endif %}" id="streak-chip" title="Daily streak">
             <i class="ph-fill ph-fire ico" aria-hidden="true"></i><span id="streak-val">{{ user.current_streak }}</span><span class="sr-only"> day streak</span>
           </span>
           <span class="chip xp" id="xp-chip" title="Experience">
             <i class="ph-fill ph-star ico" aria-hidden="true"></i><span id="xp-val">{{ user.xp }}</span><span class="xp-word">&nbsp;XP</span>
           </span>
+          {% endif %}
           <div class="user-menu">
             <button class="avatar" type="button" id="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="User menu">{% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="">{% else %}{{ user.display_name|first|upper }}{% endif %}</button>
             <div class="dropdown" id="user-dropdown">
@@ -71,6 +73,30 @@
       {% block main %}{% endblock %}
     </div>
   </main>
+
+  {% if user.is_teacher %}
+    {% with ns=request.resolver_match.namespace u=request.resolver_match.url_name %}
+    {% if u != 'detail' and u != 'exercise_create' and u != 'exercise_edit' %}
+    <nav class="tabbar" aria-label="Teacher menu">
+      <a href="{% url 'panel:classes' %}" class="{% if ns == 'panel' and 'class' in u %}active{% endif %}"><i class="ph-fill ph-users-three" aria-hidden="true"></i><span>Classes</span></a>
+      <a href="{% url 'panel:lessons' %}" class="{% if ns == 'panel' and 'lesson' in u %}active{% endif %}"><i class="ph-fill ph-film-strip" aria-hidden="true"></i><span>Lessons</span></a>
+      <a href="{% url 'lessons:progress' %}" class="{% if u == 'progress' %}active{% endif %}"><i class="ph-fill ph-chart-line-up" aria-hidden="true"></i><span>Progress</span></a>
+      <a href="{% url 'panel:dashboard' %}" class="{% if ns == 'panel' and u == 'dashboard' or ns == 'panel' and 'student' in u or u == 'users' %}active{% endif %}"><i class="ph-fill ph-squares-four" aria-hidden="true"></i><span>Panel</span></a>
+    </nav>
+    {% endif %}
+    {% endwith %}
+  {% elif user.is_authenticated %}
+    {% with u=request.resolver_match.url_name %}
+    {% if u != 'detail' and u != 'choose_role' %}
+    <nav class="tabbar" aria-label="Student menu">
+      <a href="{% url 'lessons:home' %}" class="{% if u == 'home' or u == 'join' or u == 'join_code' %}active{% endif %}"><i class="ph-fill ph-film-strip" aria-hidden="true"></i><span>Lessons</span></a>
+      <a href="{% url 'lessons:vocabulary' %}" class="{% if u == 'vocabulary' %}active{% endif %}"><i class="ph-fill ph-cards" aria-hidden="true"></i><span>Vocabulary</span></a>
+      <a href="{% url 'lessons:progress' %}" class="{% if u == 'progress' %}active{% endif %}"><i class="ph-fill ph-chart-line-up" aria-hidden="true"></i><span>Progress</span></a>
+      <a href="{% url 'profile' %}" class="{% if u == 'profile' %}active{% endif %}"><i class="ph-fill ph-user-circle" aria-hidden="true"></i><span>Profile</span></a>
+    </nav>
+    {% endif %}
+    {% endwith %}
+  {% endif %}
 
   <script>
     (function () {

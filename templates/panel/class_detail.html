@@ -1,9 +1,10 @@
 {% extends "panel/base_panel.html" %}
 {% block head_title %}{{ classroom.name }}{% endblock %}
 {% block panel %}
-<div class="page-head">
+<a href="{% url 'panel:classes' %}" class="back-link"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Back to my classes</a>
+<div class="page-head class-title">
+  {% if classroom.image_url %}<img class="class-pic" src="{{ classroom.image_url }}" alt="">{% endif %}
   <div>
-    <a href="{% url 'panel:classes' %}" class="back-link"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i> Back to my classes</a>
     <h1>{{ classroom.name }}</h1>
     {% if user.is_admin and classroom.teacher != user %}<p class="muted" style="margin:0">Teacher: {{ classroom.teacher.display_name }}</p>{% endif %}
   </div>
@@ -96,19 +97,43 @@
 </section>
 
 <details class="card more">
-  <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Rename or delete this class</summary>
-  <form method="post" style="margin-top:16px">
+  <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Edit or delete this class</summary>
+  <form method="post" enctype="multipart/form-data" style="margin-top:16px">
     {% csrf_token %}<input type="hidden" name="action" value="rename">
     <div class="field"><label for="rename">Class name</label>
-      <div class="time-row"><input type="text" id="rename" name="name" value="{{ classroom.name }}" maxlength="80" required><button class="btn secondary sm" type="submit">Save</button></div>
+      <input type="text" id="rename" name="name" value="{{ classroom.name }}" maxlength="80" required>
     </div>
+    <div class="field">
+      <span class="label">Class picture (optional)</span>
+      <div class="photo-pick">
+        <label class="btn secondary sm" for="class-photo"><i class="ph-bold ph-camera" aria-hidden="true"></i> Choose picture</label>
+        <input type="file" name="photo" id="class-photo" accept="image/*" class="sr-only">
+        <span class="muted small" id="class-photo-name">JPG or PNG, up to 8 MB.</span>
+      </div>
+      <div class="help">Helps you and your students recognize the class at a glance.</div>
+      <div class="class-pic-preview" id="class-photo-preview">{% if classroom.image_url %}<img src="{{ classroom.image_url }}" alt="Class picture">{% endif %}</div>
+      {% if classroom.image_url %}<label class="check-row" style="margin-top:8px"><input type="checkbox" name="remove_photo" value="1"> Remove the picture</label>{% endif %}
+    </div>
+    <button class="btn" type="submit">Save changes</button>
   </form>
+  <hr class="sep">
   <a class="btn ghost" href="{% url 'panel:class_delete' classroom.pk %}"><i class="ph-bold ph-trash" aria-hidden="true"></i> Delete class</a>
 </details>
 {% endblock %}
 
 {% block extra_body %}
 <script>
+  (function () {
+    var file = document.getElementById('class-photo'), box = document.getElementById('class-photo-preview'), name = document.getElementById('class-photo-name');
+    if (!file) return;
+    file.addEventListener('change', function () {
+      var f = file.files[0]; if (!f) return;
+      name.textContent = f.name;
+      box.innerHTML = '';
+      var img = document.createElement('img'); img.alt = 'Class picture'; img.src = URL.createObjectURL(f);
+      box.appendChild(img);
+    });
+  })();
   document.querySelectorAll('[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () {
       var text = b.getAttribute('data-copy'), label = b.innerHTML;

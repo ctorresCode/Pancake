@@ -20,13 +20,13 @@
       {% if lesson.published %}
         <b>Published</b><span>{% if assigned_classes %}Students in its classes can see it.{% else %}Add it to a class below so students can see it.{% endif %}</span>
       {% else %}
-        <b>Still a draft</b><span>Students can't see it yet. When you're done adding exercises, press "Publish".</span>
+        <b>Still a draft</b><span>{% if exercises %}Students can't see it yet. When you're done adding exercises, press "Publish".{% else %}Students can't see it yet. Add at least one exercise below, then you can publish it.{% endif %}</span>
       {% endif %}
     </div>
     {% if lesson.published %}
       <button class="btn secondary sm" type="submit">Hide</button>
     {% else %}
-      <button class="btn green" type="submit" {% if not exercises %}disabled title="Add at least one exercise first"{% endif %}><i class="ph-bold ph-rocket-launch" aria-hidden="true"></i> Publish</button>
+      {% if exercises %}<button class="btn green" type="submit"><i class="ph-bold ph-rocket-launch" aria-hidden="true"></i> Publish</button>{% endif %}
     {% endif %}
   </form>
 
@@ -56,12 +56,12 @@
     <div class="page-head" style="margin-bottom:6px">
       <h2 style="margin:0">Exercises in this lesson</h2>
     </div>
-    <p class="muted" style="margin-bottom:16px">Each exercise shows up for the student at the moment of the video you choose.</p>
+    <p class="muted" style="margin-bottom:16px">{% if lesson.youtube_id %}Each exercise shows up for the student at the moment of the video you choose.{% else %}This lesson has no video. Students answer the exercises one after another, in this order.{% endif %}</p>
 
     <div class="ex-list">
       {% for ex in exercises %}
         <a class="ex-item" href="{% url 'panel:exercise_edit' ex.pk %}">
-          <div class="time" title="Shows up at {{ ex.trigger_label }}">{{ ex.trigger_label }}</div>
+          {% if lesson.youtube_id %}<div class="time" title="Shows up at {{ ex.trigger_label }}">{{ ex.trigger_label }}</div>{% else %}<div class="time" title="Exercise {{ forloop.counter }}">{{ forloop.counter }}</div>{% endif %}
           <div>
             <div class="ttl">{{ ex.title_text|truncatechars:70 }}</div>
             <div class="sub">
@@ -83,7 +83,7 @@
 
   <details class="card more" {% if form.errors %}open{% endif %}>
     <summary><i class="ph-bold ph-gear-six" aria-hidden="true"></i> Change name, video or level</summary>
-    <form method="post" novalidate style="margin-top:16px">
+    <form method="post" enctype="multipart/form-data" novalidate style="margin-top:16px">
       {% csrf_token %}
       {% include "panel/_lesson_fields.html" %}
       <div class="form-actions">
@@ -94,14 +94,33 @@
   </details>
 
 {% else %}
-  <form class="card" method="post" novalidate style="max-width:720px">
-    {% csrf_token %}
-    {% include "panel/_lesson_fields.html" %}
-    <div class="form-actions">
-      <a class="btn ghost" href="{% url 'panel:lessons' %}">Cancel</a>
-      <button class="btn lg" type="submit">Create lesson</button>
-    </div>
-  </form>
+  <div class="create-layout">
+    <form class="card" method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% include "panel/_lesson_fields.html" %}
+      <div class="form-actions">
+        <a class="btn ghost" href="{% url 'panel:lessons' %}">Cancel</a>
+        <button class="btn lg" type="submit">Create lesson</button>
+      </div>
+    </form>
+    <aside class="create-side">
+      <div class="card">
+        <h2>Video preview</h2>
+        <div class="big-preview" id="yt-preview-big">
+          <i class="ph-fill ph-youtube-logo" aria-hidden="true"></i>
+          <span>Paste the YouTube link and the video shows up here. No video? That's fine, it can be a lesson with exercises only.</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What's next</h2>
+        <ol class="next-steps">
+          <li><b>Add exercises.</b> If there's a video, pick the moment where each one shows up.</li>
+          <li><b>Publish the lesson.</b> While it's a draft, students can't see it.</li>
+          <li><b>Add it to a class.</b> Only students in that class will see it.</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
 {% endif %}
 {% endblock %}
 
@@ -109,7 +128,8 @@
 <script>
   // Vista previa del video al pegar el link
   (function () {
-    var input = document.getElementById('id_youtube_id'), box = document.getElementById('yt-preview');
+    var input = document.getElementById('id_youtube_id'), box = document.getElementById('yt-preview'),
+        big = document.getElementById('yt-preview-big'), empty = big ? big.innerHTML : '';
     if (!input || !box) return;
     function parse(v) {
       var m = (v || '').match(/(?:v=|\/embed\/|\/shorts\/|\/live\/|youtu\.be\/)([A-Za-z0-9_-]{11})/) || (v || '').trim().match(/^([A-Za-z0-9_-]{11})$/);
@@ -123,8 +143,25 @@
       } else if (input.value.trim()) {
         box.innerHTML = '<span class="bad"><i class="ph-fill ph-warning-circle"></i> That link doesn&#39;t look like YouTube</span>';
       }
+      if (big) {
+        big.classList.toggle('has-video', !!id);
+        big.innerHTML = id ? '<img src="https://img.youtube.com/vi/' + id + '/hqdefault.jpg" alt="Video preview">' : empty;
+        if (id) box.innerHTML = '<span class="ok"><i class="ph-fill ph-check-circle"></i> Video found</span>';
+      }
     }
     input.addEventListener('input', show); show();
+  })();
+  // Vista previa de la foto elegida
+  (function () {
+    var file = document.getElementById('id_photo'), box = document.getElementById('lesson-photo-preview'), name = document.getElementById('lesson-photo-name');
+    if (!file || !box) return;
+    file.addEventListener('change', function () {
+      var f = file.files[0]; if (!f) return;
+      name.textContent = f.name;
+      box.innerHTML = '';
+      var img = document.createElement('img'); img.alt = 'Lesson photo'; img.src = URL.createObjectURL(f);
+      box.appendChild(img);
+    });
   })();
 </script>
 {% endblock %}

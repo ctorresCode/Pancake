@@ -3,6 +3,7 @@ from datetime import date
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.utils.http import urlencode
 
 
 class LocalhostRedirectMiddleware:
@@ -36,7 +37,9 @@ class ChooseRoleMiddleware:
             and not user.role_confirmed
             and not request.path.startswith(self.ALLOWED)
         ):
-            return HttpResponseRedirect(reverse("choose_role"))
+            # Guarda a dónde iba (por ejemplo, el link para unirse a una clase)
+            nxt = f"?{urlencode({'next': request.get_full_path()})}" if request.method == "GET" and request.path != "/" else ""
+            return HttpResponseRedirect(reverse("choose_role") + nxt)
         return self.get_response(request)
 
 

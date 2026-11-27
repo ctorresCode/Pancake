@@ -2,12 +2,13 @@ import json
 from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q, Sum
+from django.db.models import Count, F, Prefetch, Q, Sum
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -15,6 +16,7 @@ from django.views.decorators.http import require_POST
 from .models import (
     Assignment,
     Classroom,
+    DailyXP,
     Exercise,
     ExerciseResult,
     Lesson,
@@ -27,7 +29,7 @@ from .models import (
 
 def landing(request):
     if request.user.is_authenticated:
-        return redirect("lessons:home")
+        return redirect("panel:classes" if request.user.is_teacher else "lessons:home")
     return render(request, "landing.html")
 
 
@@ -52,6 +54,8 @@ def _can_open(user, lesson_id):
 @login_required
 def home(request):
     user = request.user
+    if user.is_teacher:  # la lista del alumno no aplica al profe; su inicio es My classes
+        return redirect("panel:classes")
     today = timezone.localdate()
     n_exercises = dict(Exercise.objects.values("lesson").annotate(n=Count("id")).values_list("lesson", "n"))
     done_counts = dict(
@@ -68,13 +72,14 @@ def home(request):
     def decorate(lesson):
         lesson.n_exercises = n_exercises.get(lesson.pk, 0)
         lesson.done_exercises = done_counts.get(lesson.pk, 0)
-        lesson.is_completed = lesson.pk in completed
+        # Si el profe añadió ejercicios después, vuelve a quedar pendiente
+        lesson.is_completed = lesson.pk in completed and lesson.done_exercises >= lesson.n_exercises
         lesson.is_current = False
         return lesson
 
     classes, seen = [], set()
-    published = Assignment.objects.filter(lesson__published=True).select_related("lesson")
-    memberships = Membership.objects.filter(user=user).select_related("classroom__teacher").prefetch_related(
+    published = Assignment.objects.filter(lesson__published=True).select_related("lesson").defer("lesson__image")
+    memberships = Membership.objects.filter(user=user).select_related("classroom__teacher").defer("classroom__image").prefetch_related(
         Prefetch("classroom__assignments", queryset=published, to_attr="published_assignments")
     )
     for m in memberships:
@@ -83,6 +88,7 @@ def home(request):
             decorate(a.lesson)
             done = a.lesson.is_completed
             a.is_late = bool(a.due_date and a.due_date < today and not done)
+            a.due_today = a.due_date == today
             a.due_soon = bool(a.due_date and not done and 0 <= (a.due_date - today).days <= 2)
             items.append(a)
             seen.add(a.lesson.pk)
@@ -95,22 +101,13 @@ def home(request):
             pending.lesson.is_current = True
             break
 
-    # Profesores: sus propias lecciones para verlas como alumno
-    own = []
-    if user.is_teacher:
-        own_qs = Lesson.objects.all() if user.is_admin else Lesson.objects.filter(owner=user)
-        own = [decorate(lesson) for lesson in own_qs.order_by("level", "order", "id")]
-
-    today_xp = (
-        ExerciseResult.objects.filter(user=user, updated_at__date=today).aggregate(s=Sum("xp_awarded"))["s"] or 0
-    )
+    today_xp = DailyXP.objects.filter(user=user, day=today).values_list("xp", flat=True).first() or 0
     return render(
         request,
         "lessons/home.html",
         {
             "classes": classes,
-            "own_lessons": own,
-            "completed_count": len(seen & completed),
+            "completed_count": len({a.lesson.pk for c in classes for a in c["items"] if a.lesson.is_completed}),
             "total_lessons": len(seen),
             "today_xp": today_xp,
             "daily_goal": 50,
@@ -191,9 +188,10 @@ def lesson_detail(request, slug):
 
 def _json_body(request):
     try:
-        return json.loads(request.body or "{}")
-    except json.JSONDecodeError:
+        data = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _lesson_state(user, lesson):
@@ -222,12 +220,13 @@ def _lesson_state(user, lesson):
 @login_required
 @require_POST
 def api_check(request, pk):
-    exercise = get_object_or_404(Exercise.objects.select_related("lesson"), pk=pk)
+    exercise = get_object_or_404(Exercise.objects.select_related("lesson").defer("lesson__image"), pk=pk)
     if not _can_open(request.user, exercise.lesson_id):
         return JsonResponse({"error": "not found"}, status=404)
     answer = _json_body(request).get("answer")
-    user = request.user
     with transaction.atomic():
+        # Bloquea al alumno: dos respuestas seguidas no pueden pisarse el XP
+        user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
         result, _ = ExerciseResult.objects.select_for_update().get_or_create(
             user=user, exercise=exercise, defaults={"status": ExerciseResult.SKIPPED}
         )
@@ -238,13 +237,17 @@ def api_check(request, pk):
             xp_gained = exercise.xp if first_try else max(exercise.xp // 2, 1)
             result.xp_awarded += xp_gained
         result.attempts += 1
-        result.last_answer = answer
+        # Se guarda para mostrarla al repasar; si es enorme o rara, no se guarda
+        result.last_answer = answer if len(json.dumps(answer)) <= 2000 else None
         if correct:
             result.status = ExerciseResult.CORRECT
         elif result.status != ExerciseResult.CORRECT:
             result.status = ExerciseResult.WRONG
         result.save()
         streak_up = user.register_activity(xp_gained)
+        if xp_gained:
+            row, _ = DailyXP.objects.get_or_create(user=user, day=timezone.localdate())
+            DailyXP.objects.filter(pk=row.pk).update(xp=F("xp") + xp_gained)
 
     data = {
         "correct": correct,
@@ -293,8 +296,8 @@ def api_progress(request, pk):
     body = _json_body(request)
     try:
         percent = max(0, min(100, int(body.get("percent", 0))))
-        position = max(0, int(body.get("position", 0)))
-    except (TypeError, ValueError):
+        position = max(0, min(86400, int(body.get("position", 0))))
+    except (TypeError, ValueError, OverflowError):
         return JsonResponse({"error": "bad data"}, status=400)
     progress, _ = LessonProgress.objects.get_or_create(user=request.user, lesson=lesson)
     progress.watched_percent = max(progress.watched_percent, percent)
@@ -341,13 +344,7 @@ def my_progress(request):
 
     # Actividad de los últimos 7 días
     today = timezone.localdate()
-    per_day = dict(
-        results.filter(updated_at__date__gte=today - timedelta(days=6))
-        .annotate(d=TruncDate("updated_at"))
-        .values("d")
-        .annotate(s=Sum("xp_awarded"))
-        .values_list("d", "s")
-    )
+    per_day = dict(DailyXP.objects.filter(user=user, day__gte=today - timedelta(days=6)).values_list("day", "xp"))
     week = [{"day": d, "xp": per_day.get(d) or 0} for d in (today - timedelta(days=o) for o in range(6, -1, -1))]
     max_xp = max([d["xp"] for d in week] + [1])
     for d in week:
@@ -369,7 +366,7 @@ def my_progress(request):
 
 @login_required
 def vocabulary(request):
-    items = VocabItem.objects.filter(user=request.user).select_related("exercise__lesson")
+    items = VocabItem.objects.filter(user=request.user).select_related("exercise__lesson").defer("exercise__lesson__image")
     return render(request, "lessons/vocabulary.html", {"items": items})
 
 
@@ -443,3 +440,24 @@ def teacher_progress(request):
             "week": week,
         },
     )
+
+
+@login_required
+def lesson_image(request, pk):
+    lesson = get_object_or_404(lessons_for(request.user).filter(image__isnull=False), pk=pk)
+    response = HttpResponse(bytes(lesson.image), content_type="image/jpeg")
+    response["Cache-Control"] = "private, max-age=31536000"  # la URL cambia cuando cambia la foto
+    return response
+
+
+@login_required
+def class_image(request, pk):
+    """Imagen de la clase: la ven su profe, sus alumnos y el admin."""
+    user = request.user
+    rooms = Classroom.objects.filter(image__isnull=False)
+    if not user.is_admin:
+        rooms = rooms.filter(Q(teacher=user) | Q(memberships__user=user)).distinct()
+    room = get_object_or_404(rooms, pk=pk)
+    response = HttpResponse(bytes(room.image), content_type="image/jpeg")
+    response["Cache-Control"] = "private, max-age=31536000"
+    return response

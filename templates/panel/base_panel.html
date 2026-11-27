@@ -1,17 +1,2 @@
 {% extends "base.html" %}
-{% block main %}
-{% with u=request.resolver_match.url_name %}
-<div class="panel-layout">
-  <nav class="panel-nav" aria-label="Teacher panel">
-    <div class="tag">Teacher panel</div>
-    <a href="{% url 'panel:dashboard' %}" class="{% if u == 'dashboard' %}active{% endif %}"><i class="ph-fill ph-chart-bar" aria-hidden="true"></i> Home</a>
-    <a href="{% url 'panel:classes' %}" class="{% if 'class' in u %}active{% endif %}"><i class="ph-fill ph-users-three" aria-hidden="true"></i> My classes</a>
-    <a href="{% url 'panel:lessons' %}" class="{% if 'lesson' in u or 'exercise' in u %}active{% endif %}"><i class="ph-fill ph-film-strip" aria-hidden="true"></i> My lessons</a>
-    <a href="{% url 'panel:students' %}" class="{% if 'student' in u %}active{% endif %}"><i class="ph-fill ph-graduation-cap" aria-hidden="true"></i> My students</a>
-    {% if user.is_admin %}<a href="{% url 'panel:users' %}" class="{% if u == 'users' %}active{% endif %}"><i class="ph-fill ph-user-gear" aria-hidden="true"></i> Users</a>{% endif %}
-    <a href="{% url 'lessons:home' %}"><i class="ph-fill ph-eye" aria-hidden="true"></i> View as student</a>
-  </nav>
-  <div>{% block panel %}{% endblock %}</div>
-</div>
-{% endwith %}
-{% endblock %}
+{% block main %}{% block panel %}{% endblock %}{% endblock %}

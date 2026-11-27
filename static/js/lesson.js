@@ -6,6 +6,7 @@
   var DATA = JSON.parse(document.getElementById("lesson-data").textContent);
   var EXS = DATA.exercises;
   var DONE = { correct: 1, wrong: 1 };
+  var HAS_VIDEO = !!DATA.videoId;  // lección solo con ejercicios: sin reproductor, todo disponible
 
   var $ = function (id) { return document.getElementById(id); };
   var card = $("ex-card");
@@ -87,16 +88,18 @@
           state.ready = true;
           state.duration = state.player.getDuration() || 0;
           drawCues();
+          if (state.current === null) render(false);  // muestra el botón "Watch video"
         },
         onStateChange: function (e) {
           if (!state.duration) { state.duration = state.player.getDuration() || 0; drawCues(); }
           if (e.data === YT.PlayerState.PAUSED) saveProgress();
+          if (state.current === null && (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.PAUSED)) render(false);
           if (e.data === YT.PlayerState.ENDED) { state.maxWatched = state.duration; saveProgress(); onVideoEnded(); }
         }
       }
     });
   };
-  setTimeout(function () {
+  if (HAS_VIDEO) setTimeout(function () {
     if (!state.ready && !window.YT) {
       toast("The video couldn't load. All exercises are open in free mode.");
       setMode("free");
@@ -166,6 +169,9 @@
   }
 
   function onVideoEnded() {
+    // Los ejercicios puestos después del final del video se abren al terminar
+    EXS.forEach(function (ex, i) { state.unlocked.add(i); });
+    renderChrome(); drawCues();
     var pending = EXS.findIndex(function (ex, i) { return isUnlocked(i) && !isDone(i); });
     if (pending >= 0 && state.current === null) go(pending, true);
   }
@@ -219,12 +225,16 @@
     if (Math.abs(top - below - 10) < 30) return;
     window.scrollTo({ top: Math.max(0, window.scrollY + top - below - 10), behavior: FX.reduce ? "auto" : "smooth" });
   }
+  // Primero los que no ha visto; luego los que saltó (sin volver al que acaba de saltar)
   function nextPending(from) {
+    var skipped = null;
     for (var k = 1; k <= EXS.length; k++) {
       var j = (from + k) % EXS.length;
-      if (isUnlocked(j) && !isDone(j)) return j;
+      if (!isUnlocked(j) || isDone(j)) continue;
+      if (!EXS[j].status) return j;
+      if (skipped === null && j !== from) skipped = j;
     }
-    return null;
+    return skipped;
   }
   function continueFlow() {
     if (state.pausedFor === state.current) { state.pausedFor = null; play(); }
@@ -277,6 +287,7 @@
 
   function drawCues() {
     var strip = $("cue-strip");
+    if (!strip) return;
     strip.querySelectorAll(".cue").forEach(function (c) { c.remove(); });
     if (!state.duration) return;
     EXS.forEach(function (ex, i) {
@@ -305,12 +316,15 @@
 
     var top = h("div", { class: "ex-top" }, [
       h("span", { class: "chip label", text: "Exercise " + (i + 1) + ": " + ex.label }),
-      h("button", {
+      !HAS_VIDEO ? null : h("button", {
         class: "btn ghost sm", type: "button", title: "Watch this part of the video again",
         onclick: function () { seek(ex.trigger - 10); play(); }
       }, [ic("arrow-counter-clockwise", "bold"), " " + ex.triggerLabel])
     ]);
-    if (ex.status === "correct") top.insertBefore(h("span", { class: "pill on" }, [ic("check", "bold"), " Done"]), top.lastChild);
+    if (ex.status === "correct") {
+      var done = h("span", { class: "pill on" }, [ic("check", "bold"), " Done"]);
+      if (HAS_VIDEO) top.insertBefore(done, top.lastChild); else top.appendChild(done);
+    }
 
     var body = h("div", { class: "ex-body" });
     var builders = {
@@ -356,15 +370,23 @@
     var next = EXS.findIndex(function (ex, i) { return !isUnlocked(i); });
     var allDone = EXS.length && EXS.every(function (ex, i) { return isDone(i); });
     var title, sub;
-    if (!EXS.length) { title = "This lesson has no exercises yet"; sub = "Enjoy the video."; }
+    if (!EXS.length) { title = "This lesson has no exercises yet"; sub = HAS_VIDEO ? "Enjoy the video." : "Your teacher is still working on it."; }
     else if (allDone) { title = "You finished all the exercises!"; sub = "Use the arrows to review them any time."; }
-    else if (next >= 0) { title = state.unlocked.size ? "Nice! Keep watching the video" : "Press play on the video"; sub = "The next exercise shows up at " + EXS[next].triggerLabel + "."; }
-    else { title = "You still have exercises left"; sub = "Use the arrows to go back to them."; }
+    else if (next >= 0) { title = state.unlocked.size ? "Nice! Keep watching the video" : "Press play on the video"; sub = state.duration && EXS[next].trigger >= state.duration ? "The next exercise shows up when the video ends." : "The next exercise shows up at " + EXS[next].triggerLabel + "."; }
+    var left = EXS.findIndex(function (ex, i) { return isUnlocked(i) && !isDone(i); });
+    if (EXS.length && !allDone && next < 0) {
+      var n = EXS.filter(function (ex, i) { return !isDone(i); }).length;
+      var allSkipped = EXS.every(function (ex, i) { return isDone(i) || ex.status === "skipped"; });
+      title = allSkipped ? (n === 1 ? "You skipped 1 exercise" : "You skipped " + n + " exercises")
+                         : (n === 1 ? "1 exercise left" : n + " exercises left");
+      sub = "Answer " + (n === 1 ? "it" : "them") + " to finish the lesson.";
+    }
     card.appendChild(h("div", { class: "waiting" }, [
       mascot(),
       h("h2", { text: title }),
       h("p", { class: "muted", text: sub }),
-      next >= 0 && state.ready && !playing() ? h("button", { class: "btn", type: "button", onclick: play }, [ic("play"), " Watch video"]) : null
+      next >= 0 && state.ready && !playing() ? h("button", { class: "btn", type: "button", onclick: play }, [ic("play"), " Watch video"]) : null,
+      next < 0 && left >= 0 && !allDone ? h("button", { class: "btn", type: "button", onclick: function () { go(left, true); } }, [n === 1 ? "Answer it now" : "Answer them now"]) : null
     ]));
   }
 
@@ -525,7 +547,7 @@
     if (ex.type === "order_words") answer = state.answer.map(function (k) { return ex.tiles[k]; });
     b.disabled = true;
     post(url(CFG.checkUrl, ex.id), { answer: answer }).then(function (d) { showResult(ex, d, answer); })
-      .catch(function () { b.disabled = false; toast("Oops, no connection. Try again."); });
+      .catch(function () { b.disabled = false; toast("We couldn't check your answer. Try again."); });
   }
 
   function skip() {
@@ -614,6 +636,7 @@
 
   function showDone() {
     state.doneShown = true;
+    if (playing()) state.player.pauseVideo();  // que se oiga el festejo
     $("done-modal").classList.add("open");
     FX.play("complete"); FX.buzz([30, 50, 30, 50, 60]);
     FX.react($("done-modal").querySelector(".mascot"), "happy");
@@ -671,6 +694,12 @@
   if (sb) { paintSound(); sb.addEventListener("click", function () { FX.setMuted(!FX.muted()); paintSound(); if (!FX.muted()) FX.play("tap"); }); }
 
   // Inicio
-  setMode(state.mode);
+  if (HAS_VIDEO) {
+    setMode(state.mode);
+  } else {
+    state.mode = "free";
+    var firstPending = EXS.findIndex(function (ex, i) { return !isDone(i); });
+    if (EXS.length) go(firstPending >= 0 ? firstPending : 0, true);
+  }
   if (state.current === null) render();
 })();

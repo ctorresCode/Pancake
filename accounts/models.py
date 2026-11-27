@@ -1,8 +1,15 @@
 from datetime import timedelta
 
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils import timezone
+
+
+class PancakeUserManager(UserManager):
+    """La foto de perfil solo se lee cuando se sirve, no en cada página."""
+
+    def get_queryset(self):
+        return super().get_queryset().defer("avatar")
 
 
 class User(AbstractUser):
@@ -28,6 +35,8 @@ class User(AbstractUser):
     # La foto va en la base de datos (ya reducida) porque Railway borra los archivos subidos al desplegar
     avatar = models.BinaryField(null=True, blank=True, editable=False)
     avatar_updated = models.DateTimeField(null=True, blank=True, editable=False)
+
+    objects = PancakeUserManager()
 
     def save(self, *args, **kwargs):
         # El superusuario (createsuperuser) siempre es admin y no tiene que elegir rol

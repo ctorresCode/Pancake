@@ -1,8 +1,9 @@
-import io
 
 from django import forms
 from django.utils import timezone
-from PIL import Image, ImageOps
+from PIL import Image
+
+from pancake.images import open_photo, to_jpeg
 
 from .models import User
 
@@ -44,14 +45,19 @@ class ProfileForm(forms.ModelForm):
         photo = self.cleaned_data.get("photo")
         if photo and photo.size > 5 * 1024 * 1024:
             raise forms.ValidationError("That photo is too big. Use one under 5 MB.")
+        if photo:
+            try:
+                self.photo_bytes = shrink(photo)
+            except ValueError:
+                raise forms.ValidationError("We couldn't open that photo. Try a JPG or PNG.")
         return photo
 
     def save(self, commit=True):
         user = super().save(commit=False)
         if self.cleaned_data.get("remove_photo"):
             user.avatar, user.avatar_updated = None, None
-        elif self.cleaned_data.get("photo"):
-            user.avatar = shrink(self.cleaned_data["photo"])
+        elif getattr(self, "photo_bytes", None):
+            user.avatar = self.photo_bytes
             user.avatar_updated = timezone.now()
         if commit:
             user.save()
@@ -59,18 +65,9 @@ class ProfileForm(forms.ModelForm):
 
 
 def shrink(upload, size=256):
-    """Recorta la foto al centro en cuadrado y la guarda chica en JPEG."""
-    img = Image.open(upload)
-    img = ImageOps.exif_transpose(img)
-    if img.mode in ("RGBA", "LA", "P"):  # fondo blanco para PNG transparentes
-        img = img.convert("RGBA")
-        bg = Image.new("RGB", img.size, "white")
-        bg.paste(img, mask=img.getchannel("A"))
-        img = bg
-    img = img.convert("RGB")
+    """Recorta la foto al centro en cuadrado y la guarda chica en JPEG. ValueError si no sirve."""
+    img = open_photo(upload, size)
     side = min(img.size)
     left, top = (img.width - side) // 2, (img.height - side) // 2
     img = img.crop((left, top, left + side, top + side)).resize((size, size), Image.LANCZOS)
-    out = io.BytesIO()
-    img.save(out, "JPEG", quality=85, optimize=True)
-    return out.getvalue()
+    return to_jpeg(img, quality=85)

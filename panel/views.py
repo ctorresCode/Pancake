@@ -4,6 +4,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Max, Q, Sum
 from django.forms import inlineformset_factory
@@ -25,7 +26,7 @@ from lessons.models import (
     new_class_code,
 )
 
-from .forms import BaseOptionFormSet, ExerciseForm, LessonForm
+from .forms import BaseOptionFormSet, ExerciseForm, LessonForm, shrink_photo
 
 User = get_user_model()
 
@@ -101,7 +102,7 @@ def dashboard(request):
             wrong=Count("results", filter=Q(results__status=ExerciseResult.WRONG) & Q(results__user__in=students)),
         )
         .filter(tries__gte=1, wrong__gte=1)
-        .select_related("lesson")
+        .select_related("lesson").defer("lesson__image")
         .order_by("-wrong")[:5]
     )
     return render(
@@ -117,7 +118,7 @@ def dashboard(request):
             "accuracy": accuracy,
             "answered_total": stats["total"],
             "top": students.order_by("-xp")[:5],
-            "recent": answered.select_related("user", "exercise__lesson").order_by("-updated_at")[:8],
+            "recent": answered.select_related("user", "exercise__lesson").defer("exercise__lesson__image").order_by("-updated_at")[:8],
             "hard": hard,
         },
     )
@@ -141,7 +142,7 @@ def lesson_list(request):
 
 @teacher_required
 def lesson_create(request):
-    form = LessonForm(request.POST or None, initial={"level": "A1"})
+    form = LessonForm(request.POST or None, request.FILES or None, initial={"level": "A1"})
     if request.method == "POST" and form.is_valid():
         lesson = form.save(commit=False)
         lesson.owner = request.user
@@ -155,7 +156,7 @@ def lesson_create(request):
 @teacher_required
 def lesson_edit(request, pk):
     lesson = get_object_or_404(my_lessons(request.user), pk=pk)
-    form = LessonForm(request.POST or None, instance=lesson)
+    form = LessonForm(request.POST or None, request.FILES or None, instance=lesson)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "Lesson saved.")
@@ -184,6 +185,9 @@ def lesson_assign(request, pk):
 @require_POST
 def lesson_toggle(request, pk):
     lesson = get_object_or_404(my_lessons(request.user), pk=pk)
+    if not lesson.published and not lesson.exercises.exists():
+        messages.error(request, "Add at least one exercise before publishing.")
+        return redirect("panel:lesson_edit", pk=lesson.pk)
     lesson.published = not lesson.published
     lesson.save(update_fields=["published", "updated_at"])
     messages.success(request, f"{lesson.title} is now {'published' if lesson.published else 'a draft'}.")
@@ -207,6 +211,8 @@ def lesson_delete(request, pk):
 
 # Ejercicios
 def _exercise_form(request, lesson, exercise):
+    # Sin video no se pueden usar los ejercicios que repiten un pedazo del video
+    type_help = [e for e in EXERCISE_HELP if lesson.youtube_id or e[0] not in Exercise.CLIP_TYPES]
     form = ExerciseForm(request.POST or None, instance=exercise)
     ex_type = request.POST.get("type") if request.method == "POST" else exercise.type
     formset = option_formset(exercise, request.POST or None, exercise_type=ex_type)
@@ -234,8 +240,8 @@ def _exercise_form(request, lesson, exercise):
             "formset": formset,
             "lesson": lesson,
             "exercise": exercise if exercise.pk else None,
-            "type_help": EXERCISE_HELP,
-            "more_open": ex_type in {e[0] for e in EXERCISE_HELP if not e[4]},
+            "type_help": type_help,
+            "more_open": ex_type in {e[0] for e in type_help if not e[4]},
         },
     )
 
@@ -263,7 +269,7 @@ def exercise_create(request, lesson_pk):
 @teacher_required
 def exercise_edit(request, pk):
     exercise = get_object_or_404(
-        Exercise.objects.select_related("lesson").filter(lesson__in=my_lessons(request.user)), pk=pk
+        Exercise.objects.select_related("lesson").defer("lesson__image").filter(lesson__in=my_lessons(request.user)), pk=pk
     )
     return _exercise_form(request, exercise.lesson, exercise)
 
@@ -271,7 +277,7 @@ def exercise_edit(request, pk):
 @teacher_required
 def exercise_delete(request, pk):
     exercise = get_object_or_404(
-        Exercise.objects.select_related("lesson").filter(lesson__in=my_lessons(request.user)), pk=pk
+        Exercise.objects.select_related("lesson").defer("lesson__image").filter(lesson__in=my_lessons(request.user)), pk=pk
     )
     if request.method == "POST":
         lesson_pk = exercise.lesson_id
@@ -334,13 +340,26 @@ def class_detail(request, pk):
             messages.success(request, f"New code: {classroom.code_display}. The old one doesn't work anymore.")
         elif action == "rename":
             name = request.POST.get("name", "").strip()[:80]
+            photo = request.FILES.get("photo")
             if name:
                 classroom.name = name
-                classroom.save(update_fields=["name"])
-                messages.success(request, "Class renamed.")
+            if request.POST.get("remove_photo"):
+                classroom.image, classroom.image_updated = None, None
+            elif photo:
+                if photo.size > 8 * 1024 * 1024:
+                    messages.error(request, "That picture is too big. Use one under 8 MB.")
+                    return redirect("panel:class_detail", pk=classroom.pk)
+                try:
+                    classroom.image = shrink_photo(photo, max_side=960)
+                except (OSError, ValueError):
+                    messages.error(request, "That file isn't a picture. Use a JPG or PNG.")
+                    return redirect("panel:class_detail", pk=classroom.pk)
+                classroom.image_updated = timezone.now()
+            classroom.save(update_fields=["name", "image", "image_updated"])
+            messages.success(request, "Class saved.")
         return redirect("panel:class_detail", pk=classroom.pk)
 
-    assignments = list(classroom.assignments.select_related("lesson"))
+    assignments = list(classroom.assignments.select_related("lesson").defer("lesson__image"))
     lesson_ids = [a.lesson_id for a in assignments]
     assigned = set(lesson_ids)
     available = my_lessons(request.user).exclude(pk__in=assigned).order_by("level", "order", "id")
@@ -392,7 +411,8 @@ def student_list(request):
     )
     if q:
         students = students.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(first_name__icontains=q))
-    return render(request, "panel/student_list.html", {"students": students.order_by("-xp"), "q": q})
+    page = Paginator(students.order_by("-xp", "id"), 50).get_page(request.GET.get("page"))
+    return render(request, "panel/student_list.html", {"students": page, "page": page, "q": q})
 
 
 @teacher_required
@@ -450,4 +470,5 @@ def user_list(request):
     if q:
         users = users.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(first_name__icontains=q))
     roles = [(User.STUDENT, "Student"), (User.TEACHER, "Teacher")]
-    return render(request, "panel/user_list.html", {"users": users, "q": q, "roles": roles})
+    page = Paginator(users, 50).get_page(request.GET.get("page"))
+    return render(request, "panel/user_list.html", {"users": page, "page": page, "q": q, "roles": roles})

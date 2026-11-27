@@ -4,7 +4,7 @@
 {% block main %}
 <div class="page-head">
   <div><h1>My vocabulary</h1><p class="muted" style="margin:4px 0 0">Tap a card to see what it means.</p></div>
-  <span class="chip label">{{ items|length }} expressions</span>
+  <span class="chip label">{{ items|length }} expression{{ items|length|pluralize }}</span>
 </div>
 {% if items %}
   <div class="vocab-grid">

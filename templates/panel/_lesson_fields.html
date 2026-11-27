@@ -11,6 +11,18 @@
   <div class="yt-preview" id="yt-preview"></div>
 </div>
 <div class="field">
+  <span class="label">{{ form.photo.label }}</span>
+  <div class="photo-pick">
+    <label class="btn secondary sm" for="{{ form.photo.id_for_label }}"><i class="ph-bold ph-camera" aria-hidden="true"></i> Choose photo</label>
+    <input type="file" name="photo" id="{{ form.photo.id_for_label }}" accept="image/*" class="sr-only">
+    <span class="muted small" id="lesson-photo-name">JPG or PNG, up to 8 MB.</span>
+  </div>
+  <div class="help">{{ form.photo.help_text }}</div>
+  {{ form.photo.errors }}
+  <div class="lesson-photo-preview" id="lesson-photo-preview">{% if form.instance.image_url %}<img src="{{ form.instance.image_url }}" alt="Lesson photo">{% endif %}</div>
+  {% if form.instance.image_url %}<label class="check-row" style="margin-top:8px">{{ form.remove_photo }} {{ form.remove_photo.label }}</label>{% endif %}
+</div>
+<div class="field">
   <span class="step-label"><span class="step-num">3</span> {{ form.level.label }}</span>
   <div class="chip-choices">
     {% for radio in form.level %}

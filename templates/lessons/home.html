@@ -22,9 +22,12 @@
 {% if classes %}
   {% for c in classes %}
     <div class="class-head">
-      <div>
-        <h2 class="level-title">{{ c.classroom.name }}</h2>
-        <span class="muted small"><i class="ph-fill ph-chalkboard-teacher" aria-hidden="true"></i> {{ c.classroom.teacher.display_name }}</span>
+      <div class="class-name">
+        {% if c.classroom.image_url %}<img class="class-pic sm" src="{{ c.classroom.image_url }}" alt="">{% endif %}
+        <div>
+          <h2 class="level-title">{{ c.classroom.name }}</h2>
+          <span class="muted small"><i class="ph-fill ph-chalkboard-teacher" aria-hidden="true"></i> Teacher: {{ c.classroom.teacher.display_name }}</span>
+        </div>
       </div>
       {% if forloop.first %}<a class="btn secondary sm" href="{% url 'lessons:join' %}"><i class="ph-bold ph-plus" aria-hidden="true"></i> Join a class</a>{% endif %}
     </div>
@@ -41,7 +44,7 @@
             {% if a.due_date %}
               <span class="due {% if lesson.is_completed %}done{% elif a.is_late %}late{% elif a.due_soon %}soon{% endif %}">
                 <i class="ph-fill {% if lesson.is_completed %}ph-check-circle{% elif a.is_late %}ph-warning-circle{% else %}ph-calendar-blank{% endif %}" aria-hidden="true"></i>
-                {% if lesson.is_completed %}Done{% elif a.is_late %}Late, was due {{ a.due_date|date:"M j" }}{% else %}Due {{ a.due_date|date:"D, M j" }}{% endif %}
+                {% if lesson.is_completed %}Done{% elif a.is_late %}Late, was due {{ a.due_date|date:"M j" }}{% elif a.due_today %}Due today{% else %}Due {{ a.due_date|date:"D, M j" }}{% endif %}
               </span>
             {% endif %}
             <div class="lr-progress">
@@ -59,7 +62,7 @@
       {% endfor %}
     </div>
   {% endfor %}
-{% elif not own_lessons %}
+{% else %}
   <div class="card empty">
     {% include "partials/mascot.html" %}
     <h2>Join your class</h2>
@@ -69,32 +72,6 @@
       <input type="text" name="code" placeholder="e.g. K7Q-4MZ" autocomplete="off" autocapitalize="characters" aria-label="Class code" required>
       <button class="btn" type="submit">Join</button>
     </form>
-  </div>
-{% endif %}
-
-{% if own_lessons %}
-  <div class="class-head">
-    <div>
-      <h2 class="level-title">{% if user.is_admin %}All lessons{% else %}Your lessons{% endif %}</h2>
-      <span class="muted small"><i class="ph-fill ph-eye" aria-hidden="true"></i> Only teachers see this list</span>
-    </div>
-  </div>
-  <div class="lesson-list">
-    {% for lesson in own_lessons %}
-      <a class="card lesson-row-card" href="{{ lesson.get_absolute_url }}">
-        <div class="lr-thumb"><img src="{{ lesson.thumbnail }}" alt="" loading="lazy"></div>
-        <div class="lr-body">
-          <b class="lr-title">{{ lesson.title }}{% if not lesson.published %} <span class="pill off">Draft</span>{% endif %}</b>
-          <div class="lr-progress">
-            <div class="meter purple"><span style="width: {% if lesson.n_exercises %}{% widthratio lesson.done_exercises lesson.n_exercises 100 %}{% else %}0{% endif %}%"></span></div>
-            <span class="muted small">{{ lesson.n_exercises }} exercises</span>
-          </div>
-        </div>
-        <span class="btn secondary lr-btn">Open</span>
-      </a>
-    {% empty %}
-      <div class="card empty-mini"><i class="ph-fill ph-film-strip" aria-hidden="true"></i><p><b>You don't have lessons yet.</b><br><a href="{% url 'panel:lesson_create' %}">Create your first lesson</a></p></div>
-    {% endfor %}
   </div>
 {% endif %}
 {% endblock %}

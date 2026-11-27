@@ -17,7 +17,7 @@
 <div class="lesson-cards">
   {% for c in classes %}
     <a class="card class-card" href="{% url 'panel:class_detail' c.pk %}">
-      <span class="qa-ico"><i class="ph-fill ph-users-three" aria-hidden="true"></i></span>
+      {% if c.image_url %}<img class="class-cover" src="{{ c.image_url }}" alt="" loading="lazy">{% else %}<span class="class-cover no-pic"><i class="ph-fill ph-users-three" aria-hidden="true"></i></span>{% endif %}
       <b class="lc-title">{{ c.name }}</b>
       <span class="muted small">{{ c.n_students }} student{{ c.n_students|pluralize }}, {{ c.n_lessons }} lesson{{ c.n_lessons|pluralize }}</span>
       <span class="pill lvl">Code {{ c.code_display }}</span>

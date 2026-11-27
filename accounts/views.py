@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from lessons.models import Classroom, ExerciseResult, LessonProgress, VocabItem
 
@@ -20,8 +21,11 @@ def choose_role(request):
         user.role = form.cleaned_data["role"]
         user.role_confirmed = True
         user.save(update_fields=["role", "role_confirmed"])
-        return redirect("panel:dashboard" if user.is_teacher else "lessons:home")
-    return render(request, "account/choose_role.html", {"form": form})
+        nxt = request.POST.get("next") or request.GET.get("next") or ""
+        if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+            return redirect(nxt)
+        return redirect("panel:classes" if user.is_teacher else "lessons:home")
+    return render(request, "account/choose_role.html", {"form": form, "next": request.GET.get("next", "")})
 
 
 @login_required
@@ -52,7 +56,12 @@ def profile(request):
 
 @login_required
 def avatar(request, pk):
-    user = get_object_or_404(User, pk=pk, avatar__isnull=False)
+    """La foto la ven la propia persona, sus profes y el admin."""
+    me = request.user
+    people = User.objects.filter(avatar__isnull=False)
+    if not me.is_admin and me.pk != pk:
+        people = people.filter(memberships__classroom__teacher=me).distinct()
+    user = get_object_or_404(people, pk=pk)
     response = HttpResponse(bytes(user.avatar), content_type="image/jpeg")
     response["Cache-Control"] = "private, max-age=31536000"  # la URL cambia cuando cambia la foto
     return response

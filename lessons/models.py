@@ -5,6 +5,7 @@ import unicodedata
 
 from django.conf import settings
 from django.db import models
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
 
@@ -31,19 +32,31 @@ def normalize_text(value):
     return " ".join(value.split())
 
 
+class WithoutImage(models.Manager):
+    """La foto pesa: solo se lee de la base de datos cuando se sirve."""
+
+    def get_queryset(self):
+        return super().get_queryset().defer("image")
+
+
 class Lesson(models.Model):
     title = models.CharField("title", max_length=160)
     slug = models.SlugField(unique=True, max_length=180, blank=True)
     description = models.TextField("description", blank=True)
     level = models.CharField("level", max_length=2, choices=LEVELS, default="A1")
     order = models.PositiveIntegerField("lesson number", default=1)
-    youtube_id = models.CharField("YouTube video ID", max_length=20)
+    youtube_id = models.CharField("YouTube video ID", max_length=20, blank=True)  # vacío = lección sin video
+    # Foto opcional (en la base de datos, ya reducida: Railway borra los archivos subidos al desplegar)
+    image = models.BinaryField(null=True, blank=True, editable=False)
+    image_updated = models.DateTimeField(null=True, blank=True, editable=False)
     published = models.BooleanField("published", default=False)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="lessons_owned"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = WithoutImage()
 
     class Meta:
         ordering = ["level", "order", "id"]
@@ -67,7 +80,21 @@ class Lesson(models.Model):
         return reverse("lessons:detail", args=[self.slug])
 
     @property
+    def has_video(self):
+        return bool(self.youtube_id)
+
+    @property
+    def image_url(self):
+        if not self.image_updated:
+            return ""
+        return f"{reverse('lessons:lesson_image', args=[self.pk])}?v={int(self.image_updated.timestamp())}"
+
+    @property
     def thumbnail(self):
+        if self.image_updated:
+            return self.image_url
+        if not self.youtube_id:
+            return static("img/no-video.svg")
         # mqdefault es 320x180: más liviana que hqdefault y sin franjas negras
         return f"https://img.youtube.com/vi/{self.youtube_id}/mqdefault.jpg"
 
@@ -223,9 +250,10 @@ class Exercise(models.Model):
             return True
         if self.type in self.OPTION_TYPES:
             try:
-                return self.options.filter(pk=int(answer), is_correct=True).exists()
-            except (TypeError, ValueError):
+                pk = int(answer)
+            except (TypeError, ValueError, OverflowError):
                 return False
+            return 0 < pk < 2**63 and self.options.filter(pk=pk, is_correct=True).exists()
         if self.type == self.TRUE_FALSE:
             if isinstance(answer, str):
                 answer = answer.lower() == "true"
@@ -233,9 +261,9 @@ class Exercise(models.Model):
         if self.type == self.ORDER_WORDS:
             if isinstance(answer, list):
                 answer = " ".join(str(w) for w in answer)
-            return normalize_text(answer) == normalize_text(self.sentence)
+            return isinstance(answer, str) and normalize_text(answer) == normalize_text(self.sentence)
         if self.type == self.LISTEN_TYPE:
-            given = normalize_text(str(answer))
+            given = normalize_text(answer if isinstance(answer, str) else "")
             return any(given == normalize_text(alt) for alt in self.answer_text.split("|") if alt.strip())
         return False
 
@@ -270,6 +298,17 @@ class ExerciseResult(models.Model):
 
     class Meta:
         unique_together = [("user", "exercise")]
+
+
+class DailyXP(models.Model):
+    """XP ganado cada día: la meta diaria y la gráfica de la semana salen de aquí."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="daily_xp")
+    day = models.DateField()
+    xp = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = [("user", "day")]
 
 
 class LessonProgress(models.Model):
@@ -313,7 +352,12 @@ class Classroom(models.Model):
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="classrooms_taught")
     code = models.CharField(max_length=12, unique=True, blank=True)
     students = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Membership", related_name="classrooms")
+    # Imagen opcional para reconocer la clase (en la base de datos, como las demás fotos)
+    image = models.BinaryField(null=True, blank=True, editable=False)
+    image_updated = models.DateTimeField(null=True, blank=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = WithoutImage()
 
     class Meta:
         ordering = ["name", "id"]
@@ -327,6 +371,12 @@ class Classroom(models.Model):
         if not self.code:
             self.code = new_class_code()
         super().save(*args, **kwargs)
+
+    @property
+    def image_url(self):
+        if not self.image_updated:
+            return ""
+        return f"{reverse('lessons:class_image', args=[self.pk])}?v={int(self.image_updated.timestamp())}"
 
     @property
     def code_display(self):

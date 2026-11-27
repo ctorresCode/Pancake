@@ -322,8 +322,8 @@ class PancakeTests(TestCase):
     def test_google_users_choose_role_first(self):
         u = User.objects.create_user("googler", "g@example.com", "pass12345!")  # como queda tras entrar con Google
         self.client.force_login(u)
-        self.assertRedirects(self.client.get(reverse("lessons:home")), reverse("choose_role"))
-        self.assertRedirects(self.client.get(reverse("panel:dashboard")), reverse("choose_role"))
+        self.assertRedirects(self.client.get(reverse("lessons:home")), reverse("choose_role") + "?next=%2Faprender%2F")
+        self.assertRedirects(self.client.get(reverse("panel:dashboard")), reverse("choose_role") + "?next=%2Fpanel%2F")
         self.assertEqual(self.client.get(reverse("choose_role")).status_code, 200)
         self.client.post(reverse("choose_role"), {"role": "admin"})
         u.refresh_from_db()
@@ -454,3 +454,236 @@ class PancakeTests(TestCase):
         r = self.client.get(reverse("lessons:progress"))
         self.assertTemplateUsed(r, "lessons/progress.html")
         self.assertContains(r, "My vocabulary")
+
+    def test_lesson_without_video(self):
+        self.client.force_login(self.teacher)
+        r = self.client.post(reverse("panel:lesson_create"), {"title": "Grammar quiz", "youtube_id": "", "level": "A1"})
+        lesson = Lesson.objects.get(title="Grammar quiz")
+        self.assertRedirects(r, reverse("panel:lesson_edit", args=[lesson.pk]))
+        self.assertEqual(lesson.youtube_id, "")
+        self.assertIn("no-video", lesson.thumbnail)
+        # el formulario no pide el minuto ni ofrece ejercicios de escuchar
+        url = reverse("panel:exercise_create", args=[lesson.pk])
+        page = self.client.get(url).content.decode()
+        self.assertNotIn("When does it show up in the video?", page)
+        self.assertNotIn('value="listening"', page)
+        self.assertNotIn("iframe_api", page)
+        mgmt = {"opt-TOTAL_FORMS": "4", "opt-INITIAL_FORMS": "0", "opt-MIN_NUM_FORMS": "0", "opt-MAX_NUM_FORMS": "6"}
+        first = self.client.get(url).context["form"].instance.trigger_seconds
+        self.client.post(url, {"type": "true_false", "trigger_seconds": first, "sentence": "Cats are animals", "correct_bool": "true", "xp": "10", **mgmt})
+        second = self.client.get(url).context["form"].instance.trigger_seconds
+        self.client.post(url, {"type": "multiple_choice", "trigger_seconds": second, "prompt": "Hi means?", "xp": "10",
+                               "opt-0-text": "Hola", "opt-0-is_correct": "on", "opt-1-text": "Adiós", **mgmt})
+        self.assertEqual([e.type for e in lesson.exercises.all()], ["true_false", "multiple_choice"])
+        # escuchar no se puede aunque se intente a la fuerza
+        r = self.client.post(url, {"type": "listen_type", "trigger_seconds": "200", "answer_text": "hi", "xp": "10", **mgmt})
+        self.assertContains(r, "can&#x27;t use listening exercises")
+        # el alumno la ve sin reproductor
+        lesson.published = True
+        lesson.save()
+        Assignment.objects.create(classroom=self.classroom, lesson=lesson)
+        self.client.force_login(self.student)
+        r = self.client.get(lesson.get_absolute_url())
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, "iframe_api")
+        self.assertNotContains(r, 'class="video-zone"')
+        self.assertEqual(r.context["payload"]["videoId"], "")
+        ex = lesson.exercises.get(type="true_false")
+        self.assertTrue(self.post_json(reverse("lessons:api_check", args=[ex.pk]), {"answer": "true"}).json()["correct"])
+
+    def test_lesson_photo(self):
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGB", (2400, 1600), (124, 58, 237)).save(buf, "JPEG")
+        self.client.force_login(self.teacher)
+        photo = SimpleUploadedFile("board.jpg", buf.getvalue(), content_type="image/jpeg")
+        self.client.post(reverse("panel:lesson_create"), {"title": "Describe the picture", "youtube_id": "", "level": "A1", "photo": photo})
+        lesson = Lesson.objects.get(title="Describe the picture")
+        img = Image.open(io.BytesIO(bytes(lesson.image)))
+        self.assertEqual((img.format, max(img.size)), ("JPEG", 1280))
+        self.assertEqual(lesson.thumbnail, lesson.image_url)
+        lesson.published = True
+        lesson.save()
+        Assignment.objects.create(classroom=self.classroom, lesson=lesson)
+        self.client.force_login(self.student)
+        self.assertContains(self.client.get(lesson.get_absolute_url()), 'class="lesson-photo"')
+        self.assertEqual(self.client.get(lesson.image_url)["Content-Type"], "image/jpeg")
+        # quien no está en la clase no puede ver la foto
+        outsider = make_user("out", "out@example.com", "pass12345!")
+        self.client.force_login(outsider)
+        self.assertEqual(self.client.get(lesson.image_url).status_code, 404)
+        # quitar la foto
+        self.client.force_login(self.teacher)
+        self.client.post(reverse("panel:lesson_edit", args=[lesson.pk]), {"title": lesson.title, "youtube_id": "", "level": "A1", "remove_photo": "on"})
+        lesson.refresh_from_db()
+        self.assertIsNone(lesson.image)
+
+    def test_class_picture(self):
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGBA", (2000, 1500), (124, 58, 237, 255)).save(buf, "PNG")
+        self.client.force_login(self.teacher)
+        url = reverse("panel:class_detail", args=[self.classroom.pk])
+        photo = SimpleUploadedFile("class.png", buf.getvalue(), content_type="image/png")
+        self.client.post(url, {"action": "rename", "name": "English 1A", "photo": photo})
+        room = Classroom.objects.get(pk=self.classroom.pk)
+        self.assertEqual(room.name, "English 1A")
+        img = Image.open(io.BytesIO(bytes(Classroom.objects.values_list("image", flat=True).get(pk=room.pk))))
+        self.assertEqual((img.format, max(img.size)), ("JPEG", 960))
+        self.assertContains(self.client.get(reverse("panel:classes")), room.image_url)
+        # un archivo que no es imagen no rompe nada
+        fake = SimpleUploadedFile("notes.png", b"hello", content_type="image/png")
+        self.client.post(url, {"action": "rename", "name": "English 1A", "photo": fake})
+        self.assertEqual(Classroom.objects.get(pk=room.pk).image_updated, room.image_updated)
+        # el alumno la ve en sus lecciones; alguien de fuera no
+        lesson = Lesson.objects.create(title="Hello", level="A1", youtube_id="abcdefghijk", published=True, owner=self.teacher)
+        Assignment.objects.create(classroom=room, lesson=lesson)
+        self.client.force_login(self.student)
+        self.assertContains(self.client.get(reverse("lessons:home")), room.image_url)
+        self.assertEqual(self.client.get(room.image_url)["Content-Type"], "image/jpeg")
+        self.client.force_login(make_user("out", "out@example.com", "pass12345!"))
+        self.assertEqual(self.client.get(room.image_url).status_code, 404)
+        # quitarla
+        self.client.force_login(self.teacher)
+        self.client.post(url, {"action": "rename", "name": "English 1A", "remove_photo": "1"})
+        self.assertIsNone(Classroom.objects.get(pk=room.pk).image_updated)
+
+    def test_friendly_error_pages(self):
+        from django.template.loader import render_to_string
+
+        self.client.force_login(self.student)
+        r = self.client.get("/aprender/leccion/no-existe/")
+        self.assertContains(r, "find that page", status_code=404)
+        self.assertIn("Something went wrong", render_to_string("500.html"))
+
+    def test_xp_today_counts_only_new_xp(self):
+        from .models import DailyXP
+
+        self.client.force_login(self.student)
+        tf = self.ex(Exercise.TRUE_FALSE)
+        url = reverse("lessons:api_check", args=[tf.pk])
+        self.post_json(url, {"answer": "true"})
+        # XP ganado "ayer": lo movemos a otro día
+        DailyXP.objects.filter(user=self.student).update(day=timezone.localdate() - timedelta(days=1))
+        # hoy repasa y vuelve a responder: no gana XP nuevo
+        self.assertEqual(self.post_json(url, {"answer": "true"}).json()["xpGained"], 0)
+        r = self.client.get(reverse("lessons:home"))
+        self.assertEqual(r.context["today_xp"], 0)
+        week = self.client.get(reverse("lessons:progress")).context["week"]
+        self.assertEqual([d["xp"] for d in week][-2:], [10, 0])
+
+    def test_new_exercise_reopens_a_finished_lesson(self):
+        self.client.force_login(self.student)
+        for ex in self.lesson.exercises.all():
+            ExerciseResult.objects.create(user=self.student, exercise=ex, status="correct")
+        LessonProgress.objects.create(user=self.student, lesson=self.lesson, completed_at=timezone.now())
+        self.assertEqual(self.client.get(reverse("lessons:home")).context["completed_count"], 1)
+        Exercise.objects.create(lesson=self.lesson, type=Exercise.TRUE_FALSE, sentence="New one", correct_bool=True, trigger_seconds=5)
+        self.assertEqual(self.client.get(reverse("lessons:home")).context["completed_count"], 0)
+
+    def test_api_survives_weird_answers(self):
+        self.client.force_login(self.student)
+        weird = [[1, 2], "x", 5, None, {"a": 1}, 99999999999999999999999, -1, 1.5, [None, {"x": 1}], "ñ" * 3000]
+        for ex in self.lesson.exercises.all():
+            url = reverse("lessons:api_check", args=[ex.pk])
+            for answer in weird:
+                r = self.post_json(url, {"answer": answer})
+                self.assertEqual(r.status_code, 200, (ex.type, answer))
+            for body in ("[1, 2]", '"text"', "5", "null", "not json"):
+                r = self.client.post(url, body, content_type="application/json")
+                self.assertEqual(r.status_code, 200, (ex.type, body))
+        for body in ("[1]", '{"percent": 1e400, "position": 5}', '{"percent": 5, "position": 99999999999999999999}', '{"percent": "x"}'):
+            r = self.client.post(reverse("lessons:api_progress", args=[self.lesson.pk]), body, content_type="application/json")
+            self.assertIn(r.status_code, (200, 400), body)
+        stored = ExerciseResult.objects.filter(user=self.student).values_list("last_answer", flat=True)
+        self.assertTrue(all(len(json.dumps(a)) <= 2100 for a in stored))
+
+    def test_image_bombs_are_rejected(self):
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        def bomb(name):
+            buf = io.BytesIO()
+            Image.new("1", (12000, 12000)).save(buf, "PNG")  # 144 millones de píxeles, pocos KB
+            return SimpleUploadedFile(name, buf.getvalue(), content_type="image/png")
+
+        self.client.force_login(self.teacher)
+        r = self.client.post(reverse("panel:class_detail", args=[self.classroom.pk]), {"action": "rename", "name": "English 1", "photo": bomb("c.png")})
+        self.assertEqual(r.status_code, 302)
+        self.assertIsNone(Classroom.objects.get(pk=self.classroom.pk).image_updated)
+        r = self.client.post(reverse("panel:lesson_create"), {"title": "Bomb", "youtube_id": "", "level": "A1", "photo": bomb("l.png")})
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(Lesson.objects.filter(title="Bomb").exists())
+        self.client.force_login(self.student)
+        r = self.client.post(reverse("profile"), {"bio": "x", "photo": bomb("me.png")})
+        self.assertEqual(r.status_code, 200)
+
+    def test_cannot_publish_an_empty_lesson(self):
+        self.client.force_login(self.teacher)
+        lesson = Lesson.objects.create(title="Empty", level="A1", owner=self.teacher)
+        self.client.post(reverse("panel:lesson_toggle", args=[lesson.pk]))
+        lesson.refresh_from_db()
+        self.assertFalse(lesson.published)
+
+    def test_account_flows(self):
+        from django.core import mail
+
+        r = self.client.post(reverse("account_reset_password"), {"email": "ana@example.com"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        r = self.client.post(reverse("account_reset_password"), {"email": "nobody@example.com"})
+        self.assertIn(r.status_code, (200, 302))
+        r = self.client.post(reverse("account_signup"), {"email": "ana@example.com", "username": "ana2", "password1": "Pancake#2026x", "password2": "Pancake#2026x", "role": "student"})
+        self.assertEqual(r.status_code, 200)
+        r = self.client.post(reverse("account_signup"), {"email": "new@example.com", "username": "ana", "password1": "Pancake#2026x", "password2": "Pancake#2026x", "role": "student"})
+        self.assertEqual(r.status_code, 200)
+        r = self.client.post(reverse("account_signup"), {"email": "x@example.com", "username": "x1", "password1": "Pancake#2026x", "password2": "Pancake#2026x", "role": "admin"})
+        self.assertFalse(User.objects.filter(username="x1", role="admin").exists())
+        r = self.client.post(reverse("account_login"), {"login": "ana", "password": "wrong"})
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.wsgi_request.user.is_authenticated)
+
+    def test_invite_link_survives_google_role_choice(self):
+        u = User.objects.create_user("googler2", "g2@example.com", "pass12345!")
+        self.client.force_login(u)
+        join = reverse("lessons:join_code", args=[self.classroom.code])
+        r = self.client.get(join)
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("next=", r["Location"])
+        page = self.client.get(r["Location"])
+        self.assertContains(page, 'name="next"')
+        self.assertRedirects(self.client.post(r["Location"], {"role": "student", "next": join}), join)
+        # un next de otro sitio se ignora
+        u2 = User.objects.create_user("googler3", "g3@example.com", "pass12345!")
+        self.client.force_login(u2)
+        self.assertRedirects(self.client.post(reverse("choose_role"), {"role": "teacher", "next": "https://evil.example.com/"}), reverse("panel:classes"))
+
+    def test_profile_photos_are_private(self):
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGB", (300, 300), (1, 2, 3)).save(buf, "PNG")
+        self.client.force_login(self.student)
+        self.client.post(reverse("profile"), {"bio": "", "photo": SimpleUploadedFile("me.png", buf.getvalue(), content_type="image/png")})
+        url = reverse("avatar", args=[self.student.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)  # la propia persona
+        self.client.force_login(self.teacher)
+        self.assertEqual(self.client.get(url).status_code, 200)  # su profe (admin)
+        other_teacher = make_user("t9", "t9@example.com", "pass12345!", role="teacher")
+        self.client.force_login(other_teacher)
+        self.assertEqual(self.client.get(url).status_code, 404)  # otro profe
+        self.client.force_login(make_user("st9", "st9@example.com", "pass12345!"))
+        self.assertEqual(self.client.get(url).status_code, 404)  # otro alumno

@@ -30,10 +30,12 @@
         <a href="{{ r.lesson.get_absolute_url }}"><b>{{ r.lesson.title }}</b></a>
         <div class="muted small">Level {{ r.lesson.level }}, {% if r.completed %}completed <i class="ph-fill ph-crown-simple c-yellow" aria-hidden="true"></i>{% else %}in progress{% endif %}</div>
       </div>
+      {% if r.lesson.youtube_id %}
       <div>
         <div class="small muted">Video watched {{ r.watched }}%</div>
         <div class="meter purple"><span style="width: {{ r.watched }}%"></span></div>
       </div>
+      {% endif %}
       <div>
         <div class="small muted">Exercises {{ r.answered }}/{{ r.lesson.n_exercises }}, {{ r.correct }} right</div>
         <div class="meter green"><span style="width: {% if r.lesson.n_exercises %}{% widthratio r.answered r.lesson.n_exercises 100 %}{% else %}0{% endif %}%"></span></div>
