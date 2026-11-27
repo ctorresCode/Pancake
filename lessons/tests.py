@@ -687,3 +687,14 @@ class PancakeTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 404)  # otro profe
         self.client.force_login(make_user("st9", "st9@example.com", "pass12345!"))
         self.assertEqual(self.client.get(url).status_code, 404)  # otro alumno
+
+    def test_error_pages_render(self):
+        from django.template.loader import render_to_string
+
+        for name, text in (("400.html", "off with that link"), ("403.html", "can't open this page"), ("403_csrf.html", "page expired"), ("500.html", "went wrong")):
+            self.assertIn(text, render_to_string(name))
+        from django.test import Client
+
+        c = Client(enforce_csrf_checks=True)
+        r = c.post(reverse("account_login"), {"login": "ana", "password": "x"})
+        self.assertContains(r, "page expired", status_code=403)

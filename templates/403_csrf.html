@@ -1,0 +1,21 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your page expired | Pancake</title>
+  <link rel="icon" href="{% static 'img/pancake.svg' %}" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/pancake.css' %}">
+</head>
+<body>
+  <main><div class="container">
+    <div class="card empty error-page">
+      <img src="{% static 'img/pancake.svg' %}" alt="" width="120" height="120">
+      <h1>Your page expired</h1>
+      <p class="muted">The page was open for a while, so we couldn't send it. Open it again and send it one more time.</p>
+      <a class="btn" href="">Open it again</a>
+    </div>
+  </div></main>
+</body>
+</html>
